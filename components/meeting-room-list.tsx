@@ -56,9 +56,16 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
       },
       (error) => {
         console.error("[v0] Error listening to meetings:", error)
+        const isPermissionError =
+          error.code === "permission-denied" ||
+          error.message?.includes("permission") ||
+          error.message?.includes("PERMISSION_DENIED")
+
         toast({
-          title: "Error",
-          description: "Failed to load meetings",
+          title: isPermissionError ? "Permission Denied" : "Error",
+          description: isPermissionError
+            ? "Firestore security rules are blocking access. Please deploy the firestore.rules file to your Firebase project."
+            : "Failed to load meetings",
           variant: "destructive",
         })
       },
@@ -95,9 +102,16 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
       onJoinMeeting(docRef.id)
     } catch (error: any) {
       console.error("[v0] Error creating meeting:", error)
+      const isPermissionError =
+        error.code === "permission-denied" ||
+        error.message?.includes("permission") ||
+        error.message?.includes("PERMISSION_DENIED")
+
       toast({
-        title: "Error",
-        description: error.message || "Failed to create meeting",
+        title: isPermissionError ? "Permission Denied" : "Error",
+        description: isPermissionError
+          ? "Firestore security rules are blocking access. Please deploy the firestore.rules file to your Firebase project."
+          : error.message || "Failed to create meeting",
         variant: "destructive",
       })
     } finally {

@@ -68,9 +68,16 @@ export function JoinMeetingDialog({ open, onOpenChange, onJoinSuccess }: JoinMee
       onJoinSuccess(meetingId)
     } catch (error: any) {
       console.error("[v0] Error joining meeting:", error)
+      const isPermissionError =
+        error.code === "permission-denied" ||
+        error.message?.includes("permission") ||
+        error.message?.includes("PERMISSION_DENIED")
+
       toast({
-        title: "Error",
-        description: error.message || "Failed to join meeting",
+        title: isPermissionError ? "Permission Denied" : "Error",
+        description: isPermissionError
+          ? "Firestore security rules are blocking access. Please deploy the firestore.rules file to your Firebase project."
+          : error.message || "Failed to join meeting",
         variant: "destructive",
       })
     } finally {
