@@ -383,10 +383,10 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
             <div>
               <h3 className="mb-2 text-sm font-semibold">Speaker Contributions</h3>
               <div className="space-y-3">
-                {Object.entries(meeting.summary.speakerContributions).map(([speaker, contribution]) => (
-                  <div key={speaker} className="space-y-1">
-                    <Badge variant="outline">{speaker}</Badge>
-                    <p className="text-sm leading-relaxed text-muted-foreground">{contribution}</p>
+                {meeting.summary.speakerContributions.map((item, index) => (
+                  <div key={index} className="space-y-1">
+                    <Badge variant="outline">{item.speaker}</Badge>
+                    <p className="text-sm leading-relaxed text-muted-foreground">{item.contribution}</p>
                   </div>
                 ))}
               </div>

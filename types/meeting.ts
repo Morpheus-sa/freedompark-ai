@@ -25,7 +25,10 @@ export interface Meeting {
     keyPoints: string[]
     actionItems: string[]
     decisions: string[]
-    speakerContributions: Record<string, string>
+    speakerContributions: Array<{
+      speaker: string
+      contribution: string
+    }>
   }
 }
 
