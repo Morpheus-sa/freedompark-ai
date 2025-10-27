@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // TEMPORARY TEST RULES - OPEN ACCESS
+    // Use this ONLY for testing, then switch to firestore.rules for production
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
