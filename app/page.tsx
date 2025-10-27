@@ -6,7 +6,9 @@ import { AuthDialog } from "@/components/auth-dialog"
 import { MeetingRoomList } from "@/components/meeting-room-list"
 import { JoinMeetingDialog } from "@/components/join-meeting-dialog"
 import { CollaborativeMeetingRecorder } from "@/components/collaborative-meeting-recorder"
+import { PastMeetingsList } from "@/components/past-meetings-list"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LogOut, UserPlus } from "lucide-react"
 
 export default function Home() {
@@ -61,13 +63,26 @@ export default function Home() {
             <CollaborativeMeetingRecorder meetingId={activeMeetingId} onEndMeeting={handleEndMeeting} />
           </div>
         ) : (
-          <div className="mx-auto max-w-4xl space-y-4">
-            <div className="flex justify-end">
-              <Button variant="outline" onClick={() => setJoinDialogOpen(true)}>
-                Join with ID
-              </Button>
-            </div>
-            <MeetingRoomList onJoinMeeting={handleJoinMeeting} />
+          <div className="mx-auto max-w-4xl">
+            <Tabs defaultValue="active" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <TabsList>
+                  <TabsTrigger value="active">Active Meetings</TabsTrigger>
+                  <TabsTrigger value="past">Past Meetings</TabsTrigger>
+                </TabsList>
+                <Button variant="outline" onClick={() => setJoinDialogOpen(true)}>
+                  Join with ID
+                </Button>
+              </div>
+
+              <TabsContent value="active" className="space-y-4">
+                <MeetingRoomList onJoinMeeting={handleJoinMeeting} />
+              </TabsContent>
+
+              <TabsContent value="past">
+                <PastMeetingsList />
+              </TabsContent>
+            </Tabs>
           </div>
         )}
 
