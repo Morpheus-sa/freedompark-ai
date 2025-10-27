@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           uid: firebaseUser.uid,
           email: firebaseUser.email || "",
           displayName: firebaseUser.displayName || "Anonymous",
-          photoURL: firebaseUser.photoURL || undefined,
+          ...(firebaseUser.photoURL && { photoURL: firebaseUser.photoURL }),
         }
 
         try {
