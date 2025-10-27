@@ -12,21 +12,18 @@ create table if not exists public.participants (
 -- Enable RLS
 alter table public.participants enable row level security;
 
--- RLS Policies for participants
+-- Simplified RLS policy to avoid infinite recursion
+-- Users can view participants if they are in the same meeting (by checking their own participant record directly)
 create policy "Users can view participants in their meetings"
   on public.participants for select
   using (
-    exists (
-      select 1 from public.meetings
-      where meetings.id = participants.meeting_id
-      and (
-        meetings.created_by = auth.uid() or
-        exists (
-          select 1 from public.participants p2
-          where p2.meeting_id = meetings.id
-          and p2.user_id = auth.uid()
-        )
-      )
+    -- User can see their own participant record
+    auth.uid() = user_id
+    or
+    -- User can see other participants if they have a participant record in the same meeting
+    meeting_id in (
+      select meeting_id from public.participants
+      where user_id = auth.uid()
     )
   );
 
