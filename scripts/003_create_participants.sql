@@ -12,6 +12,11 @@ create table if not exists public.participants (
 -- Enable RLS
 alter table public.participants enable row level security;
 
+-- Drop existing policies before recreating them to allow re-running the script
+drop policy if exists "Users can view participants in their meetings" on public.participants;
+drop policy if exists "Users can join meetings" on public.participants;
+drop policy if exists "Users can update their own participation" on public.participants;
+
 -- Simplified RLS policy to avoid infinite recursion
 -- Users can view participants if they are in the same meeting (by checking their own participant record directly)
 create policy "Users can view participants in their meetings"
