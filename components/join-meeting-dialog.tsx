@@ -26,19 +26,34 @@ export function JoinMeetingDialog({ open, onOpenChange, onJoinSuccess }: JoinMee
     if (!user || !meetingId.trim()) return
 
     setLoading(true)
+    console.log("[v0] Attempting to join meeting:", meetingId)
+
     try {
       const meetingRef = doc(db, "meetings", meetingId)
       const meetingSnap = await getDoc(meetingRef)
+
+      console.log("[v0] Meeting exists:", meetingSnap.exists())
 
       if (!meetingSnap.exists()) {
         throw new Error("Meeting not found")
       }
 
       const meetingData = meetingSnap.data()
+      console.log("[v0] Meeting data:", meetingData)
+
       if (!meetingData.isActive) {
         throw new Error("This meeting has ended")
       }
 
+      if (meetingData.participants?.includes(user.uid)) {
+        console.log("[v0] User already in meeting, joining directly")
+        onOpenChange(false)
+        setMeetingId("")
+        onJoinSuccess(meetingId)
+        return
+      }
+
+      console.log("[v0] Adding user to participants")
       await updateDoc(meetingRef, {
         participants: arrayUnion(user.uid),
       })
@@ -52,6 +67,7 @@ export function JoinMeetingDialog({ open, onOpenChange, onJoinSuccess }: JoinMee
       setMeetingId("")
       onJoinSuccess(meetingId)
     } catch (error: any) {
+      console.error("[v0] Error joining meeting:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to join meeting",

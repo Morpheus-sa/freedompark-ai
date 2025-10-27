@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { collection, query, where, onSnapshot, orderBy, addDoc, serverTimestamp } from "firebase/firestore"
+import { collection, query, where, onSnapshot, orderBy, addDoc, Timestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/contexts/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -36,37 +36,54 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
   useEffect(() => {
     if (!user) return
 
-    const q = query(
-      collection(db, "meetings"),
-      where("participants", "array-contains", user.uid),
-      where("isActive", "==", true),
-      orderBy("createdAt", "desc"),
+    console.log("[v0] Setting up meetings listener for user:", user.uid)
+
+    const q = query(collection(db, "meetings"), where("isActive", "==", true), orderBy("createdAt", "desc"))
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        console.log("[v0] Received meetings snapshot, docs count:", snapshot.docs.length)
+        const meetingsData = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter((meeting: any) => meeting.participants?.includes(user.uid)) as Meeting[]
+
+        console.log("[v0] Filtered meetings for user:", meetingsData.length)
+        setMeetings(meetingsData)
+      },
+      (error) => {
+        console.error("[v0] Error listening to meetings:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load meetings",
+          variant: "destructive",
+        })
+      },
     )
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const meetingsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Meeting[]
-      setMeetings(meetingsData)
-    })
-
     return unsubscribe
-  }, [user])
+  }, [user, toast])
 
   const createMeeting = async () => {
     if (!user || !newMeetingTitle.trim()) return
 
     setLoading(true)
+    console.log("[v0] Creating meeting:", newMeetingTitle)
+
     try {
       const docRef = await addDoc(collection(db, "meetings"), {
         title: newMeetingTitle,
-        createdAt: serverTimestamp(),
+        createdAt: Timestamp.now(),
         createdBy: user.uid,
         participants: [user.uid],
         transcript: [],
         isActive: true,
       })
+
+      console.log("[v0] Meeting created with ID:", docRef.id)
 
       toast({
         title: "Meeting created",
@@ -77,6 +94,7 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
       setNewMeetingTitle("")
       onJoinMeeting(docRef.id)
     } catch (error: any) {
+      console.error("[v0] Error creating meeting:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to create meeting",
@@ -149,10 +167,15 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
                         <Users className="h-3 w-3" />
                         {meeting.participants.length} participant{meeting.participants.length !== 1 ? "s" : ""}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {formatDistanceToNow(meeting.createdAt, { addSuffix: true })}
-                      </span>
+                      {meeting.createdAt && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDistanceToNow(
+                            meeting.createdAt instanceof Timestamp ? meeting.createdAt.toDate() : meeting.createdAt,
+                            { addSuffix: true },
+                          )}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">Active</div>
