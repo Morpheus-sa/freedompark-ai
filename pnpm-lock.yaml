@@ -120,7 +120,7 @@ importers:
         specifier: latest
         version: 12.4.0
       firebase-admin:
-        specifier: latest
+        specifier: 13.5.0
         version: 13.5.0
       input-otp:
         specifier: 1.4.1
@@ -3130,7 +3130,7 @@ snapshots:
   '@grpc/grpc-js@1.9.15':
     dependencies:
       '@grpc/proto-loader': 0.7.15
-      '@types/node': 22.0.0
+      '@types/node': 22.18.12
 
   '@grpc/proto-loader@0.7.15':
     dependencies:
