@@ -5,6 +5,11 @@ import { NavHeader } from "@/components/nav-header"
 
 export default async function RoomPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+
+  if (id === "new") {
+    redirect("/rooms/new")
+  }
+
   const supabase = await createClient()
 
   const {
