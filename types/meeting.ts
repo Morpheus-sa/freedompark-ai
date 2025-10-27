@@ -10,6 +10,7 @@ export interface TranscriptSegment {
   speakerName: string
   text: string
   timestamp: number
+  isMuted?: boolean
 }
 
 export interface Meeting {
@@ -20,6 +21,7 @@ export interface Meeting {
   participants: string[]
   transcript: TranscriptSegment[]
   isActive: boolean
+  mutedParticipants?: string[]
   summary?: {
     overview: string
     keyPoints: string[]
