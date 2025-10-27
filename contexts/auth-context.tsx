@@ -9,7 +9,8 @@ import {
   updateProfile,
   type User as FirebaseUser,
 } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { doc, setDoc } from "firebase/firestore"
+import { auth, db } from "@/lib/firebase"
 import type { User } from "@/types/meeting"
 
 interface AuthContextType {
@@ -27,14 +28,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        setUser({
+        const userData: User = {
           uid: firebaseUser.uid,
           email: firebaseUser.email || "",
           displayName: firebaseUser.displayName || "Anonymous",
           photoURL: firebaseUser.photoURL || undefined,
-        })
+        }
+
+        try {
+          console.log("[v0] Saving user data to Firestore:", userData)
+          const userRef = doc(db, "users", firebaseUser.uid)
+          await setDoc(userRef, userData, { merge: true })
+          console.log("[v0] User data saved successfully")
+        } catch (error) {
+          console.error("[v0] Error saving user data to Firestore:", error)
+        }
+
+        setUser(userData)
       } else {
         setUser(null)
       }
@@ -46,11 +58,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password)
+    // User data will be saved in onAuthStateChanged
   }
 
   const signUp = async (email: string, password: string, displayName: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(userCredential.user, { displayName })
+
+    const userData: User = {
+      uid: userCredential.user.uid,
+      email: userCredential.user.email || "",
+      displayName,
+    }
+
+    try {
+      console.log("[v0] Creating new user document in Firestore:", userData)
+      const userRef = doc(db, "users", userCredential.user.uid)
+      await setDoc(userRef, userData)
+      console.log("[v0] New user document created successfully")
+    } catch (error) {
+      console.error("[v0] Error creating user document:", error)
+    }
   }
 
   const signOut = async () => {
