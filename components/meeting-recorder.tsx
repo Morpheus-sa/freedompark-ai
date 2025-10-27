@@ -3,18 +3,29 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mic, Square, Loader2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Mic, Square, Loader2, Plus, User, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Badge } from "@/components/ui/badge"
+
+export type TranscriptSegment = {
+  speaker: string
+  text: string
+  timestamp: number
+}
 
 export type Meeting = {
   id: string
   date: string
   transcript: string
+  segments: TranscriptSegment[]
+  speakers: string[]
   summary: {
     overview: string
     keyPoints: string[]
     actionItems: string[]
     decisions: string[]
+    speakerInsights?: { speaker: string; contribution: string }[]
   }
 }
 
@@ -22,17 +33,24 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
   const [isRecording, setIsRecording] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [transcript, setTranscript] = useState("")
+  const [speakers, setSpeakers] = useState<string[]>([])
+  const [activeSpeaker, setActiveSpeaker] = useState<string>("")
+  const [newSpeakerName, setNewSpeakerName] = useState("")
+  const [segments, setSegments] = useState<TranscriptSegment[]>([])
   const [summary, setSummary] = useState<{
     overview: string
     keyPoints: string[]
     actionItems: string[]
     decisions: string[]
+    speakerInsights?: { speaker: string; contribution: string }[]
   } | null>(null)
   const [isSupported, setIsSupported] = useState(true)
 
   const recognitionRef = useRef<any>(null)
   const shouldProcessRef = useRef(false)
   const transcriptRef = useRef("")
+  const segmentsRef = useRef<TranscriptSegment[]>([])
+  const currentSegmentStartRef = useRef<number>(0)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -44,7 +62,56 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
     }
   }, [])
 
+  const addSpeaker = () => {
+    if (newSpeakerName.trim() && !speakers.includes(newSpeakerName.trim())) {
+      const speaker = newSpeakerName.trim()
+      setSpeakers([...speakers, speaker])
+      if (!activeSpeaker) {
+        setActiveSpeaker(speaker)
+      }
+      setNewSpeakerName("")
+      toast({
+        title: "Speaker added",
+        description: `${speaker} has been added to the meeting`,
+      })
+    }
+  }
+
+  const removeSpeaker = (speaker: string) => {
+    setSpeakers(speakers.filter((s) => s !== speaker))
+    if (activeSpeaker === speaker) {
+      setActiveSpeaker(speakers.filter((s) => s !== speaker)[0] || "")
+    }
+  }
+
+  const switchSpeaker = (speaker: string) => {
+    if (isRecording && activeSpeaker && transcriptRef.current.length > currentSegmentStartRef.current) {
+      // Save current segment
+      const segmentText = transcriptRef.current.substring(currentSegmentStartRef.current).trim()
+      if (segmentText) {
+        const newSegment: TranscriptSegment = {
+          speaker: activeSpeaker,
+          text: segmentText,
+          timestamp: Date.now(),
+        }
+        segmentsRef.current = [...segmentsRef.current, newSegment]
+        setSegments(segmentsRef.current)
+      }
+      currentSegmentStartRef.current = transcriptRef.current.length
+    }
+    setActiveSpeaker(speaker)
+  }
+
   const startRecording = async () => {
+    if (speakers.length === 0) {
+      toast({
+        title: "Add speakers first",
+        description: "Please add at least one speaker before recording",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       const recognition = new SpeechRecognition()
@@ -54,6 +121,8 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
       recognition.lang = "en-US"
 
       transcriptRef.current = ""
+      segmentsRef.current = []
+      currentSegmentStartRef.current = 0
 
       recognition.onresult = (event: any) => {
         let finalTranscript = ""
@@ -89,10 +158,23 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
       recognition.onend = async () => {
         console.log("[v0] Recognition ended, shouldProcess:", shouldProcessRef.current)
         if (shouldProcessRef.current) {
+          if (activeSpeaker && transcriptRef.current.length > currentSegmentStartRef.current) {
+            const segmentText = transcriptRef.current.substring(currentSegmentStartRef.current).trim()
+            if (segmentText) {
+              const newSegment: TranscriptSegment = {
+                speaker: activeSpeaker,
+                text: segmentText,
+                timestamp: Date.now(),
+              }
+              segmentsRef.current = [...segmentsRef.current, newSegment]
+              setSegments(segmentsRef.current)
+            }
+          }
+
           setIsRecording(false)
           setIsProcessing(true)
           shouldProcessRef.current = false
-          await processSummary(transcriptRef.current.trim())
+          await processSummary(transcriptRef.current.trim(), segmentsRef.current)
         }
       }
 
@@ -102,6 +184,7 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
       shouldProcessRef.current = true
       setTranscript("")
       setSummary(null)
+      setSegments([])
 
       toast({
         title: "Recording started",
@@ -125,7 +208,7 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
     }
   }
 
-  const processSummary = async (transcriptText: string) => {
+  const processSummary = async (transcriptText: string, transcriptSegments: TranscriptSegment[]) => {
     try {
       console.log("[v0] Processing summary, transcript length:", transcriptText.length)
 
@@ -144,7 +227,11 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ transcript: transcriptText }),
+        body: JSON.stringify({
+          transcript: transcriptText,
+          segments: transcriptSegments,
+          speakers: speakers,
+        }),
       })
 
       if (!response.ok) {
@@ -158,6 +245,8 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
         id: Date.now().toString(),
         date: new Date().toISOString(),
         transcript: transcriptText,
+        segments: transcriptSegments,
+        speakers: speakers,
         summary: data.summary,
       }
 
@@ -203,6 +292,62 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
     <div className="space-y-6">
       <Card className="border-border bg-card">
         <CardHeader>
+          <CardTitle className="text-card-foreground">Meeting Participants</CardTitle>
+          <CardDescription>Add speakers before or during the meeting</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter speaker name..."
+              value={newSpeakerName}
+              onChange={(e) => setNewSpeakerName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addSpeaker()}
+              disabled={isRecording || isProcessing}
+              className="flex-1"
+            />
+            <Button onClick={addSpeaker} disabled={isRecording || isProcessing} size="icon">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {speakers.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-card-foreground">Speakers:</p>
+              <div className="flex flex-wrap gap-2">
+                {speakers.map((speaker) => (
+                  <Badge
+                    key={speaker}
+                    variant={activeSpeaker === speaker ? "default" : "secondary"}
+                    className="cursor-pointer gap-2 px-3 py-1"
+                    onClick={() => switchSpeaker(speaker)}
+                  >
+                    <User className="h-3 w-3" />
+                    {speaker}
+                    {!isRecording && !isProcessing && (
+                      <X
+                        className="h-3 w-3 hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeSpeaker(speaker)
+                        }}
+                      />
+                    )}
+                  </Badge>
+                ))}
+              </div>
+              {isRecording && activeSpeaker && (
+                <p className="text-sm text-muted-foreground">
+                  Currently speaking: <span className="font-medium text-primary">{activeSpeaker}</span>
+                  {speakers.length > 1 && " (click another speaker to switch)"}
+                </p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border bg-card">
+        <CardHeader>
           <CardTitle className="text-card-foreground">Record Meeting</CardTitle>
           <CardDescription>Click to start recording your meeting</CardDescription>
         </CardHeader>
@@ -242,14 +387,27 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
         </CardContent>
       </Card>
 
-      {transcript && (
+      {(transcript || segments.length > 0) && (
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-card-foreground">Transcript</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="max-h-64 overflow-y-auto rounded-lg bg-muted p-4">
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{transcript}</p>
+            <div className="max-h-64 overflow-y-auto rounded-lg bg-muted p-4 space-y-3">
+              {segments.map((segment, i) => (
+                <div key={i} className="space-y-1">
+                  <p className="text-xs font-semibold text-primary">{segment.speaker}:</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground pl-4">{segment.text}</p>
+                </div>
+              ))}
+              {isRecording && activeSpeaker && transcript.length > currentSegmentStartRef.current && (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-primary">{activeSpeaker}:</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground pl-4">
+                    {transcript.substring(currentSegmentStartRef.current)}
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -265,6 +423,20 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
               <h3 className="mb-2 font-semibold text-card-foreground">Overview</h3>
               <p className="text-sm leading-relaxed text-muted-foreground">{summary.overview}</p>
             </div>
+
+            {summary.speakerInsights && summary.speakerInsights.length > 0 && (
+              <div>
+                <h3 className="mb-2 font-semibold text-card-foreground">Speaker Contributions</h3>
+                <div className="space-y-2">
+                  {summary.speakerInsights.map((insight, i) => (
+                    <div key={i} className="rounded-lg bg-muted p-3">
+                      <p className="text-sm font-medium text-primary mb-1">{insight.speaker}</p>
+                      <p className="text-sm text-muted-foreground">{insight.contribution}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {summary.keyPoints.length > 0 && (
               <div>

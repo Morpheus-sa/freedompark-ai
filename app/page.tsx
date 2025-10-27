@@ -1,23 +1,32 @@
-"use client"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
-import { useState } from "react"
-import { MeetingRecorder } from "@/components/meeting-recorder"
-import { MeetingHistory } from "@/components/meeting-history"
+export default async function Home() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-export default function Home() {
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  if (user) {
+    redirect("/rooms")
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="mb-12 text-center">
-          <h1 className="mb-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">AI Meeting Notes</h1>
-          <p className="text-lg text-muted-foreground">Record, transcribe and summarize your meetings with AI</p>
-        </header>
-
-        <div className="grid gap-8 lg:grid-cols-2">
-          <MeetingRecorder onMeetingSaved={() => setRefreshTrigger((prev) => prev + 1)} />
-          <MeetingHistory refreshTrigger={refreshTrigger} />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+      <div className="mx-auto max-w-2xl text-center">
+        <h1 className="mb-6 text-5xl font-bold tracking-tight text-foreground sm:text-6xl">AI Meeting Notes</h1>
+        <p className="mb-8 text-xl text-muted-foreground">
+          Collaborate in real-time with automatic transcription and AI-powered summaries
+        </p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
+          <Button asChild size="lg">
+            <Link href="/auth/login">Get Started</Link>
+          </Button>
+          <Button asChild variant="outline" size="lg">
+            <Link href="/auth/sign-up">Create Account</Link>
+          </Button>
         </div>
       </div>
     </div>

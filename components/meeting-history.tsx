@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileText, Trash2 } from "lucide-react"
+import { FileText, Trash2, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import type { Meeting } from "./meeting-recorder"
 
 export function MeetingHistory({ refreshTrigger }: { refreshTrigger?: number }) {
@@ -61,7 +62,19 @@ export function MeetingHistory({ refreshTrigger }: { refreshTrigger?: number }) 
               <div key={meeting.id} className="rounded-lg border border-border bg-muted/50 p-4">
                 <div className="mb-2 flex items-start justify-between">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-card-foreground">{formatDate(meeting.date)}</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="text-sm font-medium text-card-foreground">{formatDate(meeting.date)}</p>
+                      {meeting.speakers && meeting.speakers.length > 0 && (
+                        <div className="flex gap-1">
+                          {meeting.speakers.map((speaker) => (
+                            <Badge key={speaker} variant="outline" className="text-xs gap-1">
+                              <User className="h-2 w-2" />
+                              {speaker}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{meeting.summary.overview}</p>
                   </div>
                   <Button
@@ -85,6 +98,20 @@ export function MeetingHistory({ refreshTrigger }: { refreshTrigger?: number }) 
 
                 {expandedId === meeting.id && (
                   <div className="mt-4 space-y-4 border-t border-border pt-4">
+                    {meeting.summary.speakerInsights && meeting.summary.speakerInsights.length > 0 && (
+                      <div>
+                        <h4 className="mb-2 text-sm font-semibold text-card-foreground">Speaker Contributions</h4>
+                        <div className="space-y-2">
+                          {meeting.summary.speakerInsights.map((insight, i) => (
+                            <div key={i} className="rounded-lg bg-background p-3">
+                              <p className="text-sm font-medium text-primary mb-1">{insight.speaker}</p>
+                              <p className="text-sm text-muted-foreground">{insight.contribution}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {meeting.summary.keyPoints.length > 0 && (
                       <div>
                         <h4 className="mb-2 text-sm font-semibold text-card-foreground">Key Points</h4>
@@ -129,10 +156,19 @@ export function MeetingHistory({ refreshTrigger }: { refreshTrigger?: number }) 
 
                     <div>
                       <h4 className="mb-2 text-sm font-semibold text-card-foreground">Full Transcript</h4>
-                      <div className="max-h-48 overflow-y-auto rounded bg-background p-3">
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                          {meeting.transcript}
-                        </p>
+                      <div className="max-h-48 overflow-y-auto rounded bg-background p-3 space-y-3">
+                        {meeting.segments && meeting.segments.length > 0 ? (
+                          meeting.segments.map((segment, i) => (
+                            <div key={i} className="space-y-1">
+                              <p className="text-xs font-semibold text-primary">{segment.speaker}:</p>
+                              <p className="text-sm leading-relaxed text-muted-foreground pl-4">{segment.text}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                            {meeting.transcript}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
