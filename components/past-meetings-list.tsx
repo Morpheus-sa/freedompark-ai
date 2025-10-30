@@ -140,6 +140,14 @@ export function PastMeetingsList() {
   }
 
   const openEditDialog = (meeting: Meeting) => {
+    if (!user?.isAdmin) {
+      toast({
+        title: "Permission denied",
+        description: "Only admins can edit meeting summaries",
+        variant: "destructive",
+      })
+      return
+    }
     setEditingMeeting(meeting)
     setEditedSummary(meeting.summary?.overview || "")
   }
@@ -168,15 +176,27 @@ export function PastMeetingsList() {
     }
   }
 
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp)
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+  const formatDate = (timestamp: number | undefined) => {
+    if (!timestamp || typeof timestamp !== "number" || isNaN(timestamp)) {
+      return "Unknown date"
+    }
+
+    try {
+      const date = new Date(timestamp)
+      if (isNaN(date.getTime())) {
+        return "Invalid date"
+      }
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch (error) {
+      console.error("[v0] Error formatting date:", error)
+      return "Unknown date"
+    }
   }
 
   const uniqueSpeakers = (meeting: Meeting) => {
@@ -260,13 +280,13 @@ export function PastMeetingsList() {
                           >
                             <Share2 className="h-4 w-4" />
                           </Button>
-                          {meeting.summary && (
+                          {meeting.summary && user?.isAdmin && (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => openEditDialog(meeting)}
                               className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-                              title="Edit summary"
+                              title="Edit summary (Admin only)"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>

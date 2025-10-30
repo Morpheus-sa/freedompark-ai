@@ -8,15 +8,17 @@ import { JoinMeetingDialog } from "@/components/join-meeting-dialog"
 import { CollaborativeMeetingRecorder } from "@/components/collaborative-meeting-recorder"
 import { PastMeetingsList } from "@/components/past-meetings-list"
 import { AdminDashboard } from "@/components/admin-dashboard"
+import { ProfileSettingsDialog } from "@/components/profile-settings-dialog"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { LogOut, UserPlus, Shield } from "lucide-react"
+import { LogOut, UserPlus, Shield, Settings } from "lucide-react"
 
 export default function Home() {
   const { user, signOut } = useAuth()
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   const [joinDialogOpen, setJoinDialogOpen] = useState(false)
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
   const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null)
 
   const handleJoinMeeting = (meetingId: string) => {
@@ -47,6 +49,9 @@ export default function Home() {
                     </Badge>
                   )}
                 </div>
+                <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)} title="Profile Settings">
+                  <Settings className="h-4 w-4" />
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => signOut()}>
                   <LogOut className="h-4 w-4" />
                 </Button>
@@ -105,6 +110,7 @@ export default function Home() {
 
         <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
         <JoinMeetingDialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen} onJoinSuccess={handleJoinMeeting} />
+        <ProfileSettingsDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
       </div>
     </div>
   )
