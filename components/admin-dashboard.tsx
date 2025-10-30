@@ -80,6 +80,18 @@ export function AdminDashboard() {
     setShowRecordsDialog(true)
   }
 
+  const formatTimestamp = (timestamp: number | undefined) => {
+    if (!timestamp || typeof timestamp !== "number" || isNaN(timestamp)) {
+      return "Unknown"
+    }
+    try {
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true })
+    } catch (error) {
+      console.error("[v0] Error formatting timestamp:", error)
+      return "Unknown"
+    }
+  }
+
   if (loading) {
     return (
       <Card>
@@ -187,9 +199,7 @@ export function AdminDashboard() {
                             {user.email}
                           </div>
                           {user.createdAt && (
-                            <p className="text-xs text-muted-foreground">
-                              Joined {formatDistanceToNow(user.createdAt, { addSuffix: true })}
-                            </p>
+                            <p className="text-xs text-muted-foreground">Joined {formatTimestamp(user.createdAt)}</p>
                           )}
                         </div>
                       </div>
@@ -256,9 +266,7 @@ export function AdminDashboard() {
                             <Badge variant="secondary">Ended</Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(meeting.createdAt, { addSuffix: true })}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{formatTimestamp(meeting.createdAt)}</p>
                       </div>
                     </div>
                   </CardHeader>
