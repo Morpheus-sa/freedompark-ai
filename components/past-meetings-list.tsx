@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { collection, query, where, onSnapshot, orderBy, doc, deleteDoc } from "firebase/firestore"
+import { collection, query, where, onSnapshot, orderBy, doc, deleteDoc, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/contexts/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,14 +10,26 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { History, Users, Clock, Search, Trash2, ChevronDown, ChevronUp, Sparkles } from "lucide-react"
+import { History, Users, Clock, Search, Trash2, ChevronDown, ChevronUp, Sparkles, Share2, Edit } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Meeting } from "@/types/meeting"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export function PastMeetingsList() {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null)
+  const [editedSummary, setEditedSummary] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
   const [sortBy, setSortBy] = useState<"date" | "title">("date")
   const { user } = useAuth()
   const { toast } = useToast()
@@ -90,6 +102,69 @@ export function PastMeetingsList() {
         description: error.message || "Failed to delete meeting",
         variant: "destructive",
       })
+    }
+  }
+
+  const shareMeeting = async (meeting: Meeting) => {
+    try {
+      const shareText = `Meeting: ${meeting.title}\nDate: ${formatDate(meeting.createdAt)}\n\n${
+        meeting.summary?.overview || "No summary available"
+      }`
+
+      if (navigator.share) {
+        await navigator.share({
+          title: meeting.title,
+          text: shareText,
+        })
+        toast({
+          title: "Shared successfully",
+          description: "Meeting details have been shared",
+        })
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(shareText)
+        toast({
+          title: "Copied to clipboard",
+          description: "Meeting details have been copied",
+        })
+      }
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        toast({
+          title: "Error",
+          description: "Failed to share meeting",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const openEditDialog = (meeting: Meeting) => {
+    setEditingMeeting(meeting)
+    setEditedSummary(meeting.summary?.overview || "")
+  }
+
+  const saveEditedSummary = async () => {
+    if (!editingMeeting) return
+
+    setIsSaving(true)
+    try {
+      await updateDoc(doc(db, "meetings", editingMeeting.id), {
+        "summary.overview": editedSummary,
+      })
+      toast({
+        title: "Summary updated",
+        description: "Meeting summary has been saved",
+      })
+      setEditingMeeting(null)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update summary",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -175,14 +250,37 @@ export function PastMeetingsList() {
                             )}
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteMeeting(meeting.id)}
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => shareMeeting(meeting)}
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                            title="Share meeting"
+                          >
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                          {meeting.summary && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditDialog(meeting)}
+                              className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+                              title="Edit summary"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteMeeting(meeting.id)}
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                            title="Delete meeting"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
 
                       {meeting.summary && (
@@ -338,6 +436,34 @@ export function PastMeetingsList() {
             </div>
           </ScrollArea>
         )}
+
+        <Dialog open={!!editingMeeting} onOpenChange={(open) => !open && setEditingMeeting(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Meeting Summary</DialogTitle>
+              <DialogDescription>Update the AI-generated summary for this meeting</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Summary Overview</label>
+                <Textarea
+                  value={editedSummary}
+                  onChange={(e) => setEditedSummary(e.target.value)}
+                  placeholder="Enter meeting summary..."
+                  className="mt-2 min-h-[200px]"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingMeeting(null)} disabled={isSaving}>
+                Cancel
+              </Button>
+              <Button onClick={saveEditedSummary} disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   )

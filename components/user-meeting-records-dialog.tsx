@@ -24,6 +24,18 @@ export function UserMeetingRecordsDialog({ user, meetings, open, onOpenChange }:
   const [sendingMeetingId, setSendingMeetingId] = useState<string | null>(null)
   const [sentMeetings, setSentMeetings] = useState<Set<string>>(new Set())
 
+  const formatTimestamp = (timestamp: number | undefined) => {
+    if (!timestamp || typeof timestamp !== "number" || isNaN(timestamp)) {
+      return "Unknown"
+    }
+    try {
+      return formatDistanceToNow(new Date(timestamp), { addSuffix: true })
+    } catch (error) {
+      console.error("[v0] Error formatting timestamp:", error)
+      return "Unknown"
+    }
+  }
+
   const handleSendRecord = async (meeting: Meeting) => {
     setSendingMeetingId(meeting.id)
     console.log("[v0] Admin: Sending meeting record to user:", { meetingId: meeting.id, userEmail: user.email })
@@ -115,7 +127,7 @@ ${meeting.transcript.map((segment) => `[${new Date(segment.timestamp).toLocaleTi
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {formatDistanceToNow(meeting.createdAt, { addSuffix: true })}
+                            {formatTimestamp(meeting.createdAt)}
                           </div>
                           <div className="flex items-center gap-1">
                             <Users className="h-3 w-3" />
