@@ -176,16 +176,46 @@ export function PastMeetingsList() {
     }
   }
 
-  const formatDate = (timestamp: number | undefined) => {
-    if (!timestamp || typeof timestamp !== "number" || isNaN(timestamp)) {
+  const formatDate = (timestamp: any) => {
+    console.log("[v0] formatDate input:", timestamp, "type:", typeof timestamp)
+
+    if (!timestamp) {
       return "Unknown date"
     }
 
     try {
-      const date = new Date(timestamp)
-      if (isNaN(date.getTime())) {
+      let dateValue: number
+
+      // Check if it's a Firestore Timestamp object
+      if (timestamp && typeof timestamp === "object" && "seconds" in timestamp) {
+        dateValue = timestamp.seconds * 1000
+        console.log("[v0] Converted Firestore Timestamp to ms:", dateValue)
+      }
+      // Check if it has toMillis method (Firestore Timestamp)
+      else if (timestamp && typeof timestamp.toMillis === "function") {
+        dateValue = timestamp.toMillis()
+        console.log("[v0] Used toMillis():", dateValue)
+      }
+      // Check if it's already a number
+      else if (typeof timestamp === "number") {
+        dateValue = timestamp
+        console.log("[v0] Already a number:", dateValue)
+      } else {
+        console.error("[v0] Unknown timestamp format:", timestamp)
+        return "Unknown date"
+      }
+
+      if (isNaN(dateValue)) {
+        console.error("[v0] Invalid date value:", dateValue)
         return "Invalid date"
       }
+
+      const date = new Date(dateValue)
+      if (isNaN(date.getTime())) {
+        console.error("[v0] Invalid Date object:", date)
+        return "Invalid date"
+      }
+
       return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
