@@ -7,9 +7,11 @@ import { MeetingRoomList } from "@/components/meeting-room-list"
 import { JoinMeetingDialog } from "@/components/join-meeting-dialog"
 import { CollaborativeMeetingRecorder } from "@/components/collaborative-meeting-recorder"
 import { PastMeetingsList } from "@/components/past-meetings-list"
+import { AdminDashboard } from "@/components/admin-dashboard"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { LogOut, UserPlus } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { LogOut, UserPlus, Shield } from "lucide-react"
 
 export default function Home() {
   const { user, signOut } = useAuth()
@@ -30,13 +32,21 @@ export default function Home() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="mb-12">
           <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
+            <div className="flex-1 text-center">
               <h1 className="mb-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">AI Meeting Notes</h1>
               <p className="text-lg text-muted-foreground">Collaborative real-time meeting transcription with AI</p>
             </div>
             {user && (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{user.displayName}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{user.displayName}</span>
+                  {user.isAdmin && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Shield className="h-3 w-3" />
+                      Admin
+                    </Badge>
+                  )}
+                </div>
                 <Button variant="outline" size="sm" onClick={() => signOut()}>
                   <LogOut className="h-4 w-4" />
                 </Button>
@@ -64,9 +74,10 @@ export default function Home() {
           </div>
         ) : (
           <div className="mx-auto max-w-4xl">
-            <Tabs defaultValue="active" className="space-y-4">
+            <Tabs defaultValue={user.isAdmin ? "admin" : "active"} className="space-y-4">
               <div className="flex items-center justify-between">
                 <TabsList>
+                  {user.isAdmin && <TabsTrigger value="admin">Admin Dashboard</TabsTrigger>}
                   <TabsTrigger value="active">Active Meetings</TabsTrigger>
                   <TabsTrigger value="past">Past Meetings</TabsTrigger>
                 </TabsList>
@@ -74,6 +85,12 @@ export default function Home() {
                   Join with ID
                 </Button>
               </div>
+
+              {user.isAdmin && (
+                <TabsContent value="admin">
+                  <AdminDashboard />
+                </TabsContent>
+              )}
 
               <TabsContent value="active" className="space-y-4">
                 <MeetingRoomList onJoinMeeting={handleJoinMeeting} />

@@ -16,7 +16,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Users, Clock } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Plus, Users, Clock, Shield, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { formatDistanceToNow } from "date-fns"
 import type { Meeting } from "@/types/meeting"
@@ -77,6 +78,15 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
   const createMeeting = async () => {
     if (!user || !newMeetingTitle.trim()) return
 
+    if (!user.isAdmin) {
+      toast({
+        title: "Permission Denied",
+        description: "Only administrators can create meetings.",
+        variant: "destructive",
+      })
+      return
+    }
+
     setLoading(true)
     console.log("[v0] Creating meeting:", newMeetingTitle)
 
@@ -110,7 +120,7 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
       toast({
         title: isPermissionError ? "Permission Denied" : "Error",
         description: isPermissionError
-          ? "Firestore security rules are blocking access. Please deploy the firestore.rules file to your Firebase project."
+          ? "Only administrators can create meetings. Please contact an admin to create a meeting for you."
           : error.message || "Failed to create meeting",
         variant: "destructive",
       })
@@ -127,43 +137,62 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
             <CardTitle>Meeting Rooms</CardTitle>
             <CardDescription>Join or create a collaborative meeting</CardDescription>
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                New Meeting
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Meeting</DialogTitle>
-                <DialogDescription>Start a new collaborative meeting room</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Meeting Title</Label>
-                  <Input
-                    id="title"
-                    value={newMeetingTitle}
-                    onChange={(e) => setNewMeetingTitle(e.target.value)}
-                    placeholder="e.g., Team Standup, Client Call"
-                    onKeyDown={(e) => e.key === "Enter" && createMeeting()}
-                  />
-                </div>
-                <Button onClick={createMeeting} disabled={loading || !newMeetingTitle.trim()} className="w-full">
-                  {loading ? "Creating..." : "Create Meeting"}
+          {user?.isAdmin ? (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Meeting
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Meeting</DialogTitle>
+                  <DialogDescription>Start a new collaborative meeting room</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Meeting Title</Label>
+                    <Input
+                      id="title"
+                      value={newMeetingTitle}
+                      onChange={(e) => setNewMeetingTitle(e.target.value)}
+                      placeholder="e.g., Team Standup, Client Call"
+                      onKeyDown={(e) => e.key === "Enter" && createMeeting()}
+                    />
+                  </div>
+                  <Button onClick={createMeeting} disabled={loading || !newMeetingTitle.trim()} className="w-full">
+                    {loading ? "Creating..." : "Create Meeting"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          ) : (
+            <Button size="sm" disabled className="cursor-not-allowed opacity-50">
+              <Shield className="mr-2 h-4 w-4" />
+              Admin Only
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
+        {!user?.isAdmin && (
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Only administrators can create meetings. You can join existing meetings or ask an admin to create one for
+              you.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {meetings.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground">
             <Users className="mx-auto mb-2 h-12 w-12 opacity-50" />
             <p>No active meetings</p>
-            <p className="text-sm">Create a new meeting to get started</p>
+            <p className="text-sm">
+              {user?.isAdmin ? "Create a new meeting to get started" : "Wait for an admin to create a meeting"}
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
