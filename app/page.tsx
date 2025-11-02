@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { LogOut, Shield, Settings } from "lucide-react"
+import { ScheduledMeetingsList } from "@/components/scheduled-meetings-list"
 
 export default function Home() {
   const { user, signOut } = useAuth()
@@ -86,6 +87,7 @@ export default function Home() {
                 <TabsList>
                   {user.isAdmin && <TabsTrigger value="admin">Admin Dashboard</TabsTrigger>}
                   <TabsTrigger value="active">Active Meetings</TabsTrigger>
+                  <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
                   <TabsTrigger value="past">Past Meetings</TabsTrigger>
                 </TabsList>
                 <Button variant="outline" onClick={() => setJoinDialogOpen(true)}>
@@ -101,6 +103,10 @@ export default function Home() {
 
               <TabsContent value="active" className="space-y-4">
                 <MeetingRoomList onJoinMeeting={handleJoinMeeting} />
+              </TabsContent>
+
+              <TabsContent value="scheduled">
+                <ScheduledMeetingsList onStartMeeting={handleJoinMeeting} />
               </TabsContent>
 
               <TabsContent value="past">
