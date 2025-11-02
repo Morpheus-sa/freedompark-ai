@@ -9,10 +9,11 @@ import { CollaborativeMeetingRecorder } from "@/components/collaborative-meeting
 import { PastMeetingsList } from "@/components/past-meetings-list"
 import { AdminDashboard } from "@/components/admin-dashboard"
 import { ProfileSettingsDialog } from "@/components/profile-settings-dialog"
+import { LandingHero } from "@/components/landing-hero"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { LogOut, UserPlus, Shield, Settings } from "lucide-react"
+import { LogOut, Shield, Settings } from "lucide-react"
 
 export default function Home() {
   const { user, signOut } = useAuth()
@@ -27,6 +28,15 @@ export default function Home() {
 
   const handleEndMeeting = () => {
     setActiveMeetingId(null)
+  }
+
+  if (!user) {
+    return (
+      <>
+        <LandingHero onGetStarted={() => setAuthDialogOpen(true)} />
+        <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
+      </>
+    )
   }
 
   return (
@@ -60,20 +70,7 @@ export default function Home() {
           </div>
         </header>
 
-        {!user ? (
-          <div className="mx-auto max-w-md text-center">
-            <div className="rounded-lg border border-border bg-card p-8">
-              <UserPlus className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <h2 className="mb-2 text-xl font-semibold">Sign in to continue</h2>
-              <p className="mb-6 text-sm text-muted-foreground">
-                Create an account or sign in to join collaborative meetings
-              </p>
-              <Button onClick={() => setAuthDialogOpen(true)} className="w-full">
-                Get Started
-              </Button>
-            </div>
-          </div>
-        ) : activeMeetingId ? (
+        {activeMeetingId ? (
           <div className="mx-auto max-w-4xl">
             <CollaborativeMeetingRecorder meetingId={activeMeetingId} onEndMeeting={handleEndMeeting} />
           </div>
@@ -108,7 +105,6 @@ export default function Home() {
           </div>
         )}
 
-        <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
         <JoinMeetingDialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen} onJoinSuccess={handleJoinMeeting} />
         <ProfileSettingsDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
       </div>
