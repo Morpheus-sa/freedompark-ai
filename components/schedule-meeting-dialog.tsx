@@ -65,7 +65,7 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
         scheduledFor: scheduledTimestamp,
       })
 
-      console.log("[v0] Meeting scheduled with ID:", docRef.id)
+      console.log("[v0] Meeting scheduled successfully with ID:", docRef.id)
 
       toast({
         title: "Meeting scheduled",
@@ -102,17 +102,22 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Meeting Title *</Label>
+            <Label htmlFor="title" className="text-sm font-medium">
+              Meeting Title <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Team Standup, Client Call"
+              required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
+            <Label htmlFor="description" className="text-sm font-medium">
+              Description (Optional)
+            </Label>
             <Textarea
               id="description"
               value={description}
@@ -122,27 +127,41 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="date" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Date *
-              </Label>
-              <Input
-                id="date"
-                type="date"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                min={today}
-              />
-            </div>
+          <div className="space-y-3 rounded-lg border border-border bg-muted/50 p-4">
+            <p className="text-sm font-medium text-foreground">
+              Schedule Date & Time <span className="text-destructive">*</span>
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="date" className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  Date
+                </Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  min={today}
+                  required
+                  className="bg-background"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="time" className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Time *
-              </Label>
-              <Input id="time" type="time" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} />
+              <div className="space-y-2">
+                <Label htmlFor="time" className="flex items-center gap-2 text-sm">
+                  <Clock className="h-4 w-4 text-primary" />
+                  Time
+                </Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  required
+                  className="bg-background"
+                />
+              </div>
             </div>
           </div>
 

@@ -21,6 +21,8 @@ import { Plus, Users, Clock, Shield, AlertCircle, Calendar } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { formatDistanceToNow } from "date-fns"
 import type { Meeting } from "@/types/meeting"
+import { ScheduleMeetingDialog } from "@/components/schedule-meeting-dialog"
+import { JoinMeetingDialog } from "@/components/join-meeting-dialog"
 
 interface MeetingRoomListProps {
   onJoinMeeting: (meetingId: string) => void
@@ -31,6 +33,7 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
   const [newMeetingTitle, setNewMeetingTitle] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
@@ -131,110 +134,129 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Meeting Rooms</CardTitle>
-            <CardDescription>Join or create a collaborative meeting</CardDescription>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Meeting Rooms</CardTitle>
+              <CardDescription>Join or create a collaborative meeting</CardDescription>
+            </div>
           </div>
-          {user?.isAdmin ? (
-            <div className="flex gap-2">
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm">
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Meeting
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Meeting</DialogTitle>
-                    <DialogDescription>Start a new collaborative meeting room</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Meeting Title</Label>
-                      <Input
-                        id="title"
-                        value={newMeetingTitle}
-                        onChange={(e) => setNewMeetingTitle(e.target.value)}
-                        placeholder="e.g., Team Standup, Client Call"
-                        onKeyDown={(e) => e.key === "Enter" && createMeeting()}
-                      />
-                    </div>
-                    <Button onClick={createMeeting} disabled={loading || !newMeetingTitle.trim()} className="w-full">
-                      {loading ? "Creating..." : "Create Meeting"}
+        </CardHeader>
+        <CardContent>
+          {!user?.isAdmin && (
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Only administrators can create meetings. You can join existing meetings or ask an admin to create one
+                for you.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-1 gap-2">
+              <div className="flex-1">
+                <Input
+                  placeholder="Enter meeting ID to join"
+                  onFocus={() => setJoinDialogOpen(true)}
+                  readOnly
+                  className="cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {user?.isAdmin ? (
+              <div className="flex gap-2">
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="flex-1 sm:flex-none">
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Meeting
                     </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-              <Button size="sm" variant="outline" onClick={() => setScheduleDialogOpen(true)}>
-                <Calendar className="mr-2 h-4 w-4" />
-                Schedule
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Meeting</DialogTitle>
+                      <DialogDescription>Start a new collaborative meeting room</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Meeting Title</Label>
+                        <Input
+                          id="title"
+                          value={newMeetingTitle}
+                          onChange={(e) => setNewMeetingTitle(e.target.value)}
+                          placeholder="e.g., Team Standup, Client Call"
+                          onKeyDown={(e) => e.key === "Enter" && createMeeting()}
+                        />
+                      </div>
+                      <Button onClick={createMeeting} disabled={loading || !newMeetingTitle.trim()} className="w-full">
+                        {loading ? "Creating..." : "Create Meeting"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button variant="outline" onClick={() => setScheduleDialogOpen(true)} className="flex-1 sm:flex-none">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Schedule
+                </Button>
+              </div>
+            ) : (
+              <Button disabled className="cursor-not-allowed opacity-50">
+                <Shield className="mr-2 h-4 w-4" />
+                Admin Only
               </Button>
+            )}
+          </div>
+
+          {meetings.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <Users className="mx-auto mb-2 h-12 w-12 opacity-50" />
+              <p>No active meetings</p>
+              <p className="text-sm">
+                {user?.isAdmin ? "Create a new meeting to get started" : "Wait for an admin to create a meeting"}
+              </p>
             </div>
           ) : (
-            <Button size="sm" disabled className="cursor-not-allowed opacity-50">
-              <Shield className="mr-2 h-4 w-4" />
-              Admin Only
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {!user?.isAdmin && (
-          <Alert className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Only administrators can create meetings. You can join existing meetings or ask an admin to create one for
-              you.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {meetings.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">
-            <Users className="mx-auto mb-2 h-12 w-12 opacity-50" />
-            <p>No active meetings</p>
-            <p className="text-sm">
-              {user?.isAdmin ? "Create a new meeting to get started" : "Wait for an admin to create a meeting"}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {meetings.map((meeting) => (
-              <button
-                key={meeting.id}
-                onClick={() => onJoinMeeting(meeting.id)}
-                className="w-full rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-accent"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">{meeting.title}</h3>
-                    <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {meeting.participants.length} participant{meeting.participants.length !== 1 ? "s" : ""}
-                      </span>
-                      {meeting.createdAt && (
+            <div className="space-y-2">
+              {meetings.map((meeting) => (
+                <button
+                  key={meeting.id}
+                  onClick={() => onJoinMeeting(meeting.id)}
+                  className="w-full rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-accent"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground">{meeting.title}</h3>
+                      <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDistanceToNow(
-                            meeting.createdAt instanceof Timestamp ? meeting.createdAt.toDate() : meeting.createdAt,
-                            { addSuffix: true },
-                          )}
+                          <Users className="h-3 w-3" />
+                          {meeting.participants.length} participant{meeting.participants.length !== 1 ? "s" : ""}
                         </span>
-                      )}
+                        {meeting.createdAt && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatDistanceToNow(
+                              meeting.createdAt instanceof Timestamp ? meeting.createdAt.toDate() : meeting.createdAt,
+                              { addSuffix: true },
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </div>
+                    <div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">Active</div>
                   </div>
-                  <div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">Active</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <ScheduleMeetingDialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen} />
+      <JoinMeetingDialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen} onJoinSuccess={onJoinMeeting} />
+    </>
   )
 }
