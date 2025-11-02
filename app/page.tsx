@@ -5,11 +5,13 @@ import { useAuth } from "@/contexts/auth-context"
 import { AuthDialog } from "@/components/auth-dialog"
 import { MeetingRoomList } from "@/components/meeting-room-list"
 import { JoinMeetingDialog } from "@/components/join-meeting-dialog"
+import { ScheduleMeetingDialog } from "@/components/schedule-meeting-dialog"
 import { CollaborativeMeetingRecorder } from "@/components/collaborative-meeting-recorder"
 import { PastMeetingsList } from "@/components/past-meetings-list"
 import { AdminDashboard } from "@/components/admin-dashboard"
 import { ProfileSettingsDialog } from "@/components/profile-settings-dialog"
 import { LandingHero } from "@/components/landing-hero"
+import { AnimatedBackground } from "@/components/animated-background"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +21,7 @@ export default function Home() {
   const { user, signOut } = useAuth()
   const [authDialogOpen, setAuthDialogOpen] = useState(false)
   const [joinDialogOpen, setJoinDialogOpen] = useState(false)
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
   const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null)
 
@@ -40,8 +43,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="relative min-h-screen bg-background">
+      <AnimatedBackground className="fixed inset-0 z-0" opacity={0.2} particleCount={40} />
+
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="mb-12">
           <div className="flex items-center justify-between">
             <div className="flex-1 text-center">
@@ -106,6 +111,7 @@ export default function Home() {
         )}
 
         <JoinMeetingDialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen} onJoinSuccess={handleJoinMeeting} />
+        <ScheduleMeetingDialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen} />
         <ProfileSettingsDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
       </div>
     </div>

@@ -147,6 +147,16 @@
   }
 }
 
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
 @layer utilities {
   .animate-in {
     animation: enter 150ms ease-out;
@@ -154,6 +164,10 @@
 
   .animate-out {
     animation: exit 150ms ease-in;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
   }
 
   .fade-in-0 {

@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Plus, Users, Clock, Shield, AlertCircle } from "lucide-react"
+import { Plus, Users, Clock, Shield, AlertCircle, Calendar } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { formatDistanceToNow } from "date-fns"
 import type { Meeting } from "@/types/meeting"
@@ -30,6 +30,7 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [newMeetingTitle, setNewMeetingTitle] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
@@ -138,35 +139,41 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
             <CardDescription>Join or create a collaborative meeting</CardDescription>
           </div>
           {user?.isAdmin ? (
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Meeting
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Meeting</DialogTitle>
-                  <DialogDescription>Start a new collaborative meeting room</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Meeting Title</Label>
-                    <Input
-                      id="title"
-                      value={newMeetingTitle}
-                      onChange={(e) => setNewMeetingTitle(e.target.value)}
-                      placeholder="e.g., Team Standup, Client Call"
-                      onKeyDown={(e) => e.key === "Enter" && createMeeting()}
-                    />
-                  </div>
-                  <Button onClick={createMeeting} disabled={loading || !newMeetingTitle.trim()} className="w-full">
-                    {loading ? "Creating..." : "Create Meeting"}
+            <div className="flex gap-2">
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Meeting
                   </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New Meeting</DialogTitle>
+                    <DialogDescription>Start a new collaborative meeting room</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Meeting Title</Label>
+                      <Input
+                        id="title"
+                        value={newMeetingTitle}
+                        onChange={(e) => setNewMeetingTitle(e.target.value)}
+                        placeholder="e.g., Team Standup, Client Call"
+                        onKeyDown={(e) => e.key === "Enter" && createMeeting()}
+                      />
+                    </div>
+                    <Button onClick={createMeeting} disabled={loading || !newMeetingTitle.trim()} className="w-full">
+                      {loading ? "Creating..." : "Create Meeting"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Button size="sm" variant="outline" onClick={() => setScheduleDialogOpen(true)}>
+                <Calendar className="mr-2 h-4 w-4" />
+                Schedule
+              </Button>
+            </div>
           ) : (
             <Button size="sm" disabled className="cursor-not-allowed opacity-50">
               <Shield className="mr-2 h-4 w-4" />
