@@ -68,7 +68,7 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
       })
       onOpenChange(false)
     } catch (error: any) {
-      console.error("[v0] Error updating profile:", error)
+      console.error("Error updating profile:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to update profile",
