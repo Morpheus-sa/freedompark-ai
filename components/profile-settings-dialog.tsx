@@ -111,7 +111,7 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
                 id="fullName"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="John Doe"
+                placeholder=""
               />
             </div>
             <div className="space-y-2">
@@ -120,7 +120,7 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
                 id="company"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                placeholder="Acme Inc."
+                placeholder=""
               />
             </div>
             <div className="space-y-2">
