@@ -37,7 +37,7 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
   useEffect(() => {
     if (!user) return
 
-    console.log("[v0] Setting up scheduled meetings listener for user:", user.uid)
+    console.log("Setting up scheduled meetings listener for user:", user.uid)
 
     const q = query(
       collection(db, "meetings"),
@@ -49,7 +49,7 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        console.log("[v0] Received scheduled meetings snapshot, docs count:", snapshot.docs.length)
+        console.log("Received scheduled meetings snapshot, docs count:", snapshot.docs.length)
         const meetingsData = snapshot.docs
           .map((doc) => ({
             id: doc.id,
@@ -57,11 +57,11 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
           }))
           .filter((meeting: any) => meeting.participants?.includes(user.uid)) as Meeting[]
 
-        console.log("[v0] Filtered scheduled meetings for user:", meetingsData.length)
+        console.log("Filtered scheduled meetings for user:", meetingsData.length)
         setMeetings(meetingsData)
       },
       (error) => {
-        console.error("[v0] Error listening to scheduled meetings:", error)
+        console.error("Error listening to scheduled meetings:", error)
         toast({
           title: "Error",
           description: "Failed to load scheduled meetings",
@@ -93,7 +93,7 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
 
       onStartMeeting(meetingId)
     } catch (error: any) {
-      console.error("[v0] Error starting meeting:", error)
+      console.error("Error starting meeting:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to start meeting",
@@ -158,7 +158,7 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
         minute: "2-digit",
       })
     } catch (error) {
-      console.error("[v0] Error formatting scheduled time:", error)
+      console.error("Error formatting scheduled time:", error)
       return "Unknown time"
     }
   }
