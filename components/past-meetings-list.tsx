@@ -37,14 +37,14 @@ export function PastMeetingsList() {
   useEffect(() => {
     if (!user) return
 
-    console.log("[v0] Setting up past meetings listener for user:", user.uid)
+    console.log("Setting up past meetings listener for user:", user.uid)
 
     const q = query(collection(db, "meetings"), where("isActive", "==", false), orderBy("createdAt", "desc"))
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        console.log("[v0] Received past meetings snapshot, docs count:", snapshot.docs.length)
+        console.log("Received past meetings snapshot, docs count:", snapshot.docs.length)
         const meetingsData = snapshot.docs
           .map((doc) => ({
             id: doc.id,
@@ -52,11 +52,11 @@ export function PastMeetingsList() {
           }))
           .filter((meeting: any) => meeting.participants?.includes(user.uid)) as Meeting[]
 
-        console.log("[v0] Filtered past meetings for user:", meetingsData.length)
+        console.log("Filtered past meetings for user:", meetingsData.length)
         setMeetings(meetingsData)
       },
       (error) => {
-        console.error("[v0] Error listening to past meetings:", error)
+        console.error("Error listening to past meetings:", error)
         toast({
           title: "Error",
           description: "Failed to load past meetings",
@@ -177,7 +177,7 @@ export function PastMeetingsList() {
   }
 
   const formatDate = (timestamp: any) => {
-    console.log("[v0] formatDate input:", timestamp, "type:", typeof timestamp)
+    console.log("formatDate input:", timestamp, "type:", typeof timestamp)
 
     if (!timestamp) {
       return "Unknown date"
@@ -189,30 +189,30 @@ export function PastMeetingsList() {
       // Check if it's a Firestore Timestamp object
       if (timestamp && typeof timestamp === "object" && "seconds" in timestamp) {
         dateValue = timestamp.seconds * 1000
-        console.log("[v0] Converted Firestore Timestamp to ms:", dateValue)
+        console.log("Converted Firestore Timestamp to ms:", dateValue)
       }
       // Check if it has toMillis method (Firestore Timestamp)
       else if (timestamp && typeof timestamp.toMillis === "function") {
         dateValue = timestamp.toMillis()
-        console.log("[v0] Used toMillis():", dateValue)
+        console.log("Used toMillis():", dateValue)
       }
       // Check if it's already a number
       else if (typeof timestamp === "number") {
         dateValue = timestamp
-        console.log("[v0] Already a number:", dateValue)
+        console.log("Already a number:", dateValue)
       } else {
-        console.error("[v0] Unknown timestamp format:", timestamp)
+        console.error("Unknown timestamp format:", timestamp)
         return "Unknown date"
       }
 
       if (isNaN(dateValue)) {
-        console.error("[v0] Invalid date value:", dateValue)
+        console.error("Invalid date value:", dateValue)
         return "Invalid date"
       }
 
       const date = new Date(dateValue)
       if (isNaN(date.getTime())) {
-        console.error("[v0] Invalid Date object:", date)
+        console.error("Invalid Date object:", date)
         return "Invalid date"
       }
 
@@ -224,7 +224,7 @@ export function PastMeetingsList() {
         minute: "2-digit",
       })
     } catch (error) {
-      console.error("[v0] Error formatting date:", error)
+      console.error("Error formatting date:", error)
       return "Unknown date"
     }
   }
