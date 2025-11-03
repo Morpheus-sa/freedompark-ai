@@ -104,13 +104,13 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
             transcript: arrayUnion(segment),
           })
         } catch (error) {
-          console.error("[v0] Error saving transcript:", error)
+          console.error("Error saving transcript:", error)
         }
       }
     }
 
     recognition.onerror = (event: any) => {
-      console.error("[v0] Speech recognition error:", event.error)
+      console.error("Speech recognition error:", event.error)
       if (event.error === "no-speech") {
         return
       }
@@ -157,7 +157,7 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
         description: "Speak clearly into your microphone",
       })
     } catch (error) {
-      console.error("[v0] Error starting recording:", error)
+      console.error("Error starting recording:", error)
     }
   }
 

@@ -23,7 +23,7 @@ export function AdminDashboard() {
   const [showRecordsDialog, setShowRecordsDialog] = useState(false)
 
   useEffect(() => {
-    console.log("[v0] Admin Dashboard: Setting up real-time listeners")
+    console.log("Admin Dashboard: Setting up real-time listeners")
 
     const usersQuery = query(collection(db, "users"), orderBy("createdAt", "desc"))
     const unsubscribeUsers = onSnapshot(
@@ -33,12 +33,12 @@ export function AdminDashboard() {
           ...doc.data(),
           uid: doc.id,
         })) as User[]
-        console.log("[v0] Admin Dashboard: Loaded users:", usersData.length)
+        console.log("Admin Dashboard: Loaded users:", usersData.length)
         setUsers(usersData)
         setLoading(false)
       },
       (error) => {
-        console.error("[v0] Admin Dashboard: Error loading users:", error)
+        console.error("Admin Dashboard: Error loading users:", error)
         setLoading(false)
       },
     )
@@ -51,11 +51,11 @@ export function AdminDashboard() {
           ...doc.data(),
           id: doc.id,
         })) as Meeting[]
-        console.log("[v0] Admin Dashboard: Loaded meetings:", meetingsData.length)
+        console.log("Admin Dashboard: Loaded meetings:", meetingsData.length)
         setMeetings(meetingsData)
       },
       (error) => {
-        console.error("[v0] Admin Dashboard: Error loading meetings:", error)
+        console.error("Admin Dashboard: Error loading meetings:", error)
       },
     )
 
@@ -91,7 +91,7 @@ export function AdminDashboard() {
     try {
       return formatDistanceToNow(new Date(timestamp), { addSuffix: true })
     } catch (error) {
-      console.error("[v0] Error formatting timestamp:", error)
+      console.error("Error formatting timestamp:", error)
       return "Unknown"
     }
   }
