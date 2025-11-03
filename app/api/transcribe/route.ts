@@ -56,7 +56,7 @@ ${transcript}`,
       summary,
     })
   } catch (error) {
-    console.error("[v0] Transcription error:", error)
+    console.error("Transcription error:", error)
     return NextResponse.json({ error: "Failed to process audio" }, { status: 500 })
   }
 }
