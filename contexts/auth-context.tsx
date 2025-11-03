@@ -53,12 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         try {
-          console.log("[v0] Saving user data to Firestore:", { ...userData, isAdmin })
+          console.log("Saving user data to Firestore:", { ...userData, isAdmin })
           const userRef = doc(db, "users", firebaseUser.uid)
           await setDoc(userRef, userData, { merge: true })
-          console.log("[v0] User data saved successfully with admin status:", isAdmin)
+          console.log("User data saved successfully with admin status:", isAdmin)
         } catch (error) {
-          console.error("[v0] Error saving user data to Firestore:", error)
+          console.error("Error saving user data to Firestore:", error)
         }
 
         setUser(userData)
@@ -102,12 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      console.log("[v0] Creating new user document in Firestore:", { ...userData, isAdmin })
+      console.log("Creating new user document in Firestore:", { ...userData, isAdmin })
       const userRef = doc(db, "users", userCredential.user.uid)
       await setDoc(userRef, userData)
-      console.log("[v0] New user document created successfully with admin status:", isAdmin)
+      console.log("New user document created successfully with admin status:", isAdmin)
     } catch (error) {
-      console.error("[v0] Error creating user document:", error)
+      console.error("Error creating user document:", error)
     }
   }
 
