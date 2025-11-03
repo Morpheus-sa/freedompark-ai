@@ -145,7 +145,7 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
       }
 
       recognition.onerror = (event: any) => {
-        console.error("[v0] Speech recognition error:", event.error)
+        console.error("Speech recognition error:", event.error)
         toast({
           title: "Error",
           description: "Speech recognition error: " + event.error,
@@ -156,7 +156,7 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
       }
 
       recognition.onend = async () => {
-        console.log("[v0] Recognition ended, shouldProcess:", shouldProcessRef.current)
+        console.log("Recognition ended, shouldProcess:", shouldProcessRef.current)
         if (shouldProcessRef.current) {
           if (activeSpeaker && transcriptRef.current.length > currentSegmentStartRef.current) {
             const segmentText = transcriptRef.current.substring(currentSegmentStartRef.current).trim()
@@ -191,7 +191,7 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
         description: "Your meeting is being recorded",
       })
     } catch (error) {
-      console.error("[v0] Error starting recording:", error)
+      console.error("Error starting recording:", error)
       toast({
         title: "Error",
         description: "Could not start speech recognition",
@@ -201,7 +201,7 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
   }
 
   const stopRecording = () => {
-    console.log("[v0] Stop button clicked")
+    console.log("Stop button clicked")
     if (recognitionRef.current && isRecording) {
       shouldProcessRef.current = true
       recognitionRef.current.stop()
@@ -210,7 +210,7 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
 
   const processSummary = async (transcriptText: string, transcriptSegments: TranscriptSegment[]) => {
     try {
-      console.log("[v0] Processing summary, transcript length:", transcriptText.length)
+      console.log("Processing summary, transcript length:", transcriptText.length)
 
       if (!transcriptText || transcriptText.length < 10) {
         toast({
@@ -253,7 +253,7 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
       const existingMeetings = JSON.parse(localStorage.getItem("meetings") || "[]")
       localStorage.setItem("meetings", JSON.stringify([meeting, ...existingMeetings]))
 
-      console.log("[v0] Meeting saved to localStorage")
+      console.log("Meeting saved to localStorage")
 
       if (onMeetingSaved) {
         onMeetingSaved()
