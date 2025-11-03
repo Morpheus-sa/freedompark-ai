@@ -27,7 +27,7 @@ export function MeetingParticipants({ participantIds }: MeetingParticipantsProps
         const users = snapshot.docs.map((doc) => doc.data() as User)
         setParticipants(users)
       } catch (error) {
-        console.error("[v0] Error fetching participants:", error)
+        console.error("Error fetching participants:", error)
       }
     }
 
