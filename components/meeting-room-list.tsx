@@ -41,14 +41,14 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
   useEffect(() => {
     if (!user) return
 
-    console.log("[v0] Setting up meetings listener for user:", user.uid)
+    console.log("Setting up meetings listener for user:", user.uid)
 
     const q = query(collection(db, "meetings"), where("isActive", "==", true), orderBy("createdAt", "desc"))
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        console.log("[v0] Received meetings snapshot, docs count:", snapshot.docs.length)
+        console.log("Received meetings snapshot, docs count:", snapshot.docs.length)
         const meetingsData = snapshot.docs
           .map((doc) => ({
             id: doc.id,
@@ -56,11 +56,11 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
           }))
           .filter((meeting: any) => meeting.participants?.includes(user.uid)) as Meeting[]
 
-        console.log("[v0] Filtered meetings for user:", meetingsData.length)
+        console.log("Filtered meetings for user:", meetingsData.length)
         setMeetings(meetingsData)
       },
       (error) => {
-        console.error("[v0] Error listening to meetings:", error)
+        console.error("Error listening to meetings:", error)
         const isPermissionError =
           error.code === "permission-denied" ||
           error.message?.includes("permission") ||
@@ -92,7 +92,7 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
     }
 
     setLoading(true)
-    console.log("[v0] Creating meeting:", newMeetingTitle)
+    console.log("Creating meeting:", newMeetingTitle)
 
     try {
       const docRef = await addDoc(collection(db, "meetings"), {
@@ -104,7 +104,7 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
         isActive: true,
       })
 
-      console.log("[v0] Meeting created with ID:", docRef.id)
+      console.log("Meeting created with ID:", docRef.id)
 
       toast({
         title: "Meeting created",
@@ -115,7 +115,7 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
       setNewMeetingTitle("")
       onJoinMeeting(docRef.id)
     } catch (error: any) {
-      console.error("[v0] Error creating meeting:", error)
+      console.error("Error creating meeting:", error)
       const isPermissionError =
         error.code === "permission-denied" ||
         error.message?.includes("permission") ||
