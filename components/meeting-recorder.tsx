@@ -264,7 +264,7 @@ export function MeetingRecorder({ onMeetingSaved }: { onMeetingSaved?: () => voi
         description: "Your notes are ready",
       })
     } catch (error) {
-      console.error("[v0] Error processing summary:", error)
+      console.error("Error processing summary:", error)
       toast({
         title: "Error",
         description: "Failed to generate summary",
