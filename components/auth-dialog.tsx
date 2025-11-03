@@ -104,7 +104,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                     id="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="John Doe"
+                    placeholder=""
                     required
                   />
                 </div>
@@ -116,7 +116,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                     id="company"
                     value={company}
                     onChange={(e) => setCompany(e.target.value)}
-                    placeholder="Acme Inc."
+                    placeholder=""
                     required
                   />
                 </div>
