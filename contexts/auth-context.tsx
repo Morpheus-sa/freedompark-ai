@@ -18,7 +18,17 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, displayName: string) => Promise<void>
+  signUp: (
+    email: string,
+    password: string,
+    displayName: string,
+    additionalFields?: {
+      fullName?: string
+      company?: string
+      jobTitle?: string
+      department?: string
+    },
+  ) => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -66,7 +76,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // User data will be saved in onAuthStateChanged
   }
 
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    displayName: string,
+    additionalFields?: {
+      fullName?: string
+      company?: string
+      jobTitle?: string
+      department?: string
+    },
+  ) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(userCredential.user, { displayName })
 
@@ -78,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       displayName,
       isAdmin,
       createdAt: Date.now(),
+      ...additionalFields,
     }
 
     try {

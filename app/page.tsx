@@ -12,6 +12,7 @@ import { AdminDashboard } from "@/components/admin-dashboard"
 import { ProfileSettingsDialog } from "@/components/profile-settings-dialog"
 import { LandingHero } from "@/components/landing-hero"
 import { AnimatedBackground } from "@/components/animated-background"
+import { NotificationCenter } from "@/components/notification-center"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -65,6 +66,7 @@ export default function Home() {
                     </Badge>
                   )}
                 </div>
+                <NotificationCenter />
                 <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)} title="Profile Settings">
                   <Settings className="h-4 w-4" />
                 </Button>

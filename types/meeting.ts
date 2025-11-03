@@ -44,4 +44,8 @@ export interface User {
   photoURL?: string
   isAdmin?: boolean
   createdAt?: number
+  fullName?: string
+  company?: string
+  jobTitle?: string
+  department?: string
 }

@@ -9,22 +9,40 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast"
-import { Calendar, Clock } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CalendarIcon, Clock } from "lucide-react"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
 
 interface ScheduleMeetingDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
+const generateTimeSlots = () => {
+  const slots: string[] = []
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      const timeString = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
+      slots.push(timeString)
+    }
+  }
+  return slots
+}
+
 export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDialogProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [scheduledDate, setScheduledDate] = useState("")
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined)
   const [scheduledTime, setScheduledTime] = useState("")
   const [loading, setLoading] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
+
+  const timeSlots = generateTimeSlots()
 
   const scheduleMeeting = async () => {
     if (!user || !title.trim() || !scheduledDate || !scheduledTime) {
@@ -49,8 +67,9 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
     console.log("[v0] Scheduling meeting:", { title, scheduledDate, scheduledTime })
 
     try {
-      // Combine date and time into a timestamp
-      const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`)
+      const [hours, minutes] = scheduledTime.split(":").map(Number)
+      const scheduledDateTime = new Date(scheduledDate)
+      scheduledDateTime.setHours(hours, minutes, 0, 0)
       const scheduledTimestamp = Timestamp.fromDate(scheduledDateTime)
 
       const docRef = await addDoc(collection(db, "meetings"), {
@@ -60,7 +79,7 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
         createdBy: user.uid,
         participants: [user.uid],
         transcript: [],
-        isActive: false, // Scheduled meetings start as inactive
+        isActive: false,
         isScheduled: true,
         scheduledFor: scheduledTimestamp,
       })
@@ -68,14 +87,21 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
       console.log("[v0] Meeting scheduled successfully with ID:", docRef.id)
 
       toast({
-        title: "Meeting scheduled",
-        description: `Meeting scheduled for ${scheduledDateTime.toLocaleString()}`,
+        title: "✓ Meeting Scheduled Successfully",
+        description: (
+          <div className="mt-2 space-y-1">
+            <p className="font-semibold">{title}</p>
+            <p className="text-sm">📅 {format(scheduledDateTime, "EEEE, MMMM d, yyyy")}</p>
+            <p className="text-sm">🕐 {scheduledTime} (24-hour format)</p>
+            {description && <p className="mt-2 text-xs text-muted-foreground">{description}</p>}
+          </div>
+        ),
+        duration: 8000, // Show for 8 seconds
       })
 
-      // Reset form
       setTitle("")
       setDescription("")
-      setScheduledDate("")
+      setScheduledDate(undefined)
       setScheduledTime("")
       onOpenChange(false)
     } catch (error: any) {
@@ -90,12 +116,9 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
     }
   }
 
-  // Get minimum date (today)
-  const today = new Date().toISOString().split("T")[0]
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>Schedule Meeting</DialogTitle>
           <DialogDescription>Schedule a meeting for a future date and time</DialogDescription>
@@ -133,36 +156,59 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="date" className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4 text-primary" />
+                <Label className="flex items-center gap-2 text-sm">
+                  <CalendarIcon className="h-4 w-4 text-primary" />
                   Date
                 </Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  min={today}
-                  required
-                  className="bg-background"
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal bg-background",
+                        !scheduledDate && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {scheduledDate ? format(scheduledDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={scheduledDate}
+                      onSelect={setScheduledDate}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="time" className="flex items-center gap-2 text-sm">
+                <Label className="flex items-center gap-2 text-sm">
                   <Clock className="h-4 w-4 text-primary" />
-                  Time
+                  Time (24-hour format)
                 </Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                  required
-                  className="bg-background"
-                />
+                <Select value={scheduledTime} onValueChange={setScheduledTime}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select time" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {timeSlots.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+            {scheduledDate && scheduledTime && (
+              <div className="mt-2 rounded-md bg-primary/10 p-2 text-center text-sm text-primary">
+                Scheduled for: {format(scheduledDate, "PPP")} at {scheduledTime}
+              </div>
+            )}
           </div>
 
           <Button

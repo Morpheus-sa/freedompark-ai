@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Shield, Users, Calendar, Search, Mail, Clock } from "lucide-react"
+import { Shield, Users, Calendar, Search, Mail, Clock, Briefcase, Building2, UserIcon } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { UserMeetingRecordsDialog } from "./user-meeting-records-dialog"
 
@@ -68,7 +68,11 @@ export function AdminDashboard() {
   const filteredUsers = users.filter(
     (user) =>
       user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()),
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.department?.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   const getUserMeetings = (userId: string) => {
@@ -166,7 +170,7 @@ export function AdminDashboard() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search users by name or email..."
+              placeholder="Search users by name, email, company, job title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -184,7 +188,7 @@ export function AdminDashboard() {
                   <Card key={user.uid}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
-                        <div className="space-y-1">
+                        <div className="space-y-2 flex-1">
                           <div className="flex items-center gap-2">
                             <CardTitle className="text-base">{user.displayName}</CardTitle>
                             {user.isAdmin && (
@@ -198,6 +202,32 @@ export function AdminDashboard() {
                             <Mail className="h-3 w-3" />
                             {user.email}
                           </div>
+                          {(user.fullName || user.company || user.jobTitle || user.department) && (
+                            <div className="mt-3 space-y-1.5 rounded-md border border-border/50 bg-muted/30 p-3">
+                              <p className="text-xs font-semibold text-foreground/80 mb-2">Professional Profile</p>
+                              {user.fullName && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-foreground">{user.fullName}</span>
+                                </div>
+                              )}
+                              {user.company && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-foreground">{user.company}</span>
+                                </div>
+                              )}
+                              {user.jobTitle && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-foreground">{user.jobTitle}</span>
+                                  {user.department && (
+                                    <span className="text-muted-foreground">• {user.department}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                           {user.createdAt && (
                             <p className="text-xs text-muted-foreground">Joined {formatTimestamp(user.createdAt)}</p>
                           )}
