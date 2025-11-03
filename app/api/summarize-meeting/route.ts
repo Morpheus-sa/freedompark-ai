@@ -19,18 +19,18 @@ const summarySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[v0] Starting meeting summarization")
+    console.log("Starting meeting summarization")
     const { transcript } = await request.json()
 
     if (!transcript || transcript.length === 0) {
-      console.log("[v0] No transcript provided")
+      console.log("No transcript provided")
       return NextResponse.json({ error: "No transcript provided" }, { status: 400 })
     }
 
-    console.log("[v0] Transcript segments:", transcript.length)
+    console.log("Transcript segments:", transcript.length)
     const formattedTranscript = transcript.map((segment: any) => `${segment.speakerName}: ${segment.text}`).join("\n\n")
 
-    console.log("[v0] Calling generateObject with schema")
+    console.log("Calling generateObject with schema")
     const { object: summary } = await generateObject({
       model: "openai/gpt-4o-mini",
       schema: summarySchema,
@@ -47,11 +47,11 @@ Generate a detailed summary with:
 - Speaker contributions (as an array of objects with speaker name and their contribution summary)`,
     })
 
-    console.log("[v0] Summary generated successfully")
+    console.log("Summary generated successfully")
     return NextResponse.json(summary)
   } catch (error: any) {
-    console.error("[v0] Summarization error:", error.message)
-    console.error("[v0] Full error:", error)
+    console.error("Summarization error:", error.message)
+    console.error("Full error:", error)
     return NextResponse.json({ error: error.message || "Failed to generate summary" }, { status: 500 })
   }
 }
