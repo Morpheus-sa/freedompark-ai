@@ -11,7 +11,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-console.log("[v0] Firebase config check:", {
+console.log("Firebase config check:", {
   hasApiKey: !!firebaseConfig.apiKey,
   hasAuthDomain: !!firebaseConfig.authDomain,
   hasProjectId: !!firebaseConfig.projectId,
@@ -26,7 +26,7 @@ const missingConfig = Object.entries(firebaseConfig)
   .map(([key]) => key)
 
 if (missingConfig.length > 0) {
-  console.error("[v0] Missing Firebase configuration:", missingConfig)
+  console.error("Missing Firebase configuration:", missingConfig)
   throw new Error(
     `Missing Firebase configuration: ${missingConfig.join(", ")}. Please add these environment variables.`,
   )
@@ -36,9 +36,9 @@ if (missingConfig.length > 0) {
 let app
 try {
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
-  console.log("[v0] Firebase app initialized successfully")
+  console.log("Firebase app initialized successfully")
 } catch (error) {
-  console.error("[v0] Firebase initialization error:", error)
+  console.error("Firebase initialization error:", error)
   throw error
 }
 
