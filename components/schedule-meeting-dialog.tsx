@@ -64,7 +64,7 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
     }
 
     setLoading(true)
-    console.log("[v0] Scheduling meeting:", { title, scheduledDate, scheduledTime })
+    console.log("Scheduling meeting:", { title, scheduledDate, scheduledTime })
 
     try {
       const [hours, minutes] = scheduledTime.split(":").map(Number)
@@ -84,7 +84,7 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
         scheduledFor: scheduledTimestamp,
       })
 
-      console.log("[v0] Meeting scheduled successfully with ID:", docRef.id)
+      console.log("Meeting scheduled successfully with ID:", docRef.id)
 
       toast({
         title: "✓ Meeting Scheduled Successfully",
@@ -105,7 +105,7 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
       setScheduledTime("")
       onOpenChange(false)
     } catch (error: any) {
-      console.error("[v0] Error scheduling meeting:", error)
+      console.error("Error scheduling meeting:", error)
       toast({
         title: "Error",
         description: error.message || "Failed to schedule meeting",
