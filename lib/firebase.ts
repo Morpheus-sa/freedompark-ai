@@ -45,7 +45,7 @@ try {
 const auth = getAuth(app)
 const db = getFirestore(app)
 
-console.log("[v0] Firebase services initialized:", {
+console.log("Firebase services initialized:", {
   auth: !!auth,
   firestore: !!db,
 })
