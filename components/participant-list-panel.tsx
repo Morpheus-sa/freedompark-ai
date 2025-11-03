@@ -25,7 +25,7 @@ export function ParticipantListPanel({ meeting }: ParticipantListPanelProps) {
   const isHost = user?.uid === meeting.createdBy
 
   useEffect(() => {
-    console.log("[v0] ParticipantListPanel - meeting data:", {
+    console.log("ParticipantListPanel - meeting data:", {
       meetingId: meeting.id,
       participantIds: meeting.participants,
       participantCount: meeting.participants.length,
@@ -34,25 +34,25 @@ export function ParticipantListPanel({ meeting }: ParticipantListPanelProps) {
 
     const fetchParticipants = async () => {
       if (meeting.participants.length === 0) {
-        console.log("[v0] No participants in meeting")
+        console.log("No participants in meeting")
         setLoading(false)
         return
       }
 
       try {
-        console.log("[v0] Fetching participants from Firestore users collection...")
+        console.log("Fetching participants from Firestore users collection...")
         const usersRef = collection(db, "users")
         const q = query(usersRef, where("uid", "in", meeting.participants))
         const snapshot = await getDocs(q)
 
-        console.log("[v0] Firestore query result:", {
+        console.log("Firestore query result:", {
           docsFound: snapshot.docs.length,
           expectedCount: meeting.participants.length,
         })
 
         const users = snapshot.docs.map((doc) => {
           const data = doc.data() as User
-          console.log("[v0] Found user:", data)
+          console.log("Found user:", data)
           return data
         })
 
@@ -60,7 +60,7 @@ export function ParticipantListPanel({ meeting }: ParticipantListPanelProps) {
 
         // If we didn't find all users, create fallback entries
         if (users.length < meeting.participants.length) {
-          console.log("[v0] Some users not found in Firestore, creating fallback entries")
+          console.log("Some users not found in Firestore, creating fallback entries")
           const foundUids = users.map((u) => u.uid)
           const missingUids = meeting.participants.filter((uid) => !foundUids.includes(uid))
 
@@ -70,11 +70,11 @@ export function ParticipantListPanel({ meeting }: ParticipantListPanelProps) {
             displayName: uid === meeting.createdBy ? "Meeting Host" : `User ${uid.slice(0, 6)}`,
           }))
 
-          console.log("[v0] Created fallback users:", fallbackUsers)
+          console.log("Created fallback users:", fallbackUsers)
           setParticipants([...users, ...fallbackUsers])
         }
       } catch (error) {
-        console.error("[v0] Error fetching participants:", error)
+        console.error("Error fetching participants:", error)
         // Create fallback entries for all participants
         const fallbackUsers: User[] = meeting.participants.map((uid) => ({
           uid,
