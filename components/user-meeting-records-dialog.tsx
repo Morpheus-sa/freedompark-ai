@@ -31,25 +31,25 @@ export function UserMeetingRecordsDialog({ user, meetings, open, onOpenChange }:
     try {
       return formatDistanceToNow(new Date(timestamp), { addSuffix: true })
     } catch (error) {
-      console.error("[v0] Error formatting timestamp:", error)
+      console.error("Error formatting timestamp:", error)
       return "Unknown"
     }
   }
 
   const handleSendRecord = async (meeting: Meeting) => {
     setSendingMeetingId(meeting.id)
-    console.log("[v0] Admin: Sending meeting record to user:", { meetingId: meeting.id, userEmail: user.email })
+    console.log("Admin: Sending meeting record to user:", { meetingId: meeting.id, userEmail: user.email })
 
     // Simulate sending email (in production, this would call an API endpoint)
     await new Promise((resolve) => setTimeout(resolve, 1500))
 
     setSentMeetings((prev) => new Set(prev).add(meeting.id))
     setSendingMeetingId(null)
-    console.log("[v0] Admin: Meeting record sent successfully")
+    console.log("Admin: Meeting record sent successfully")
   }
 
   const handleDownloadRecord = (meeting: Meeting) => {
-    console.log("[v0] Admin: Downloading meeting record:", meeting.id)
+    console.log("Admin: Downloading meeting record:", meeting.id)
 
     // Create a text representation of the meeting
     const recordText = `
