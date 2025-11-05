@@ -11,12 +11,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CalendarIcon, Clock } from "lucide-react"
 import { format } from "date-fns"
-import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 
 interface ScheduleMeetingDialogProps {
@@ -38,42 +35,22 @@ const generateTimeSlots = () => {
 export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDialogProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined)
+  const [scheduledDate, setScheduledDate] = useState("")
   const [scheduledTime, setScheduledTime] = useState("")
   const [loading, setLoading] = useState(false)
-  const [fallbackDate, setFallbackDate] = useState("")
-  const [useNativePicker, setUseNativePicker] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
 
   const timeSlots = generateTimeSlots()
 
-  const handleDateSelect = (date: Date | undefined) => {
-    console.log("[v0] Date selected from calendar:", date)
-    setScheduledDate(date)
-    if (date) {
-      // Also update fallback date
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, "0")
-      const day = String(date.getDate()).padStart(2, "0")
-      setFallbackDate(`${year}-${month}-${day}`)
-    }
-  }
-
-  const handleFallbackDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const dateString = e.target.value
-    console.log("[v0] Fallback date input changed:", dateString)
-    setFallbackDate(dateString)
-    if (dateString) {
-      const date = new Date(dateString)
-      setScheduledDate(date)
-    }
+    console.log("[v0] Date selected:", dateString)
+    setScheduledDate(dateString)
   }
 
   const scheduleMeeting = async () => {
-    const finalDate = scheduledDate || (fallbackDate ? new Date(fallbackDate) : undefined)
-
-    if (!user || !title.trim() || !finalDate || !scheduledTime) {
+    if (!user || !title.trim() || !scheduledDate || !scheduledTime) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields",
@@ -92,11 +69,11 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
     }
 
     setLoading(true)
-    console.log("[v0] Scheduling meeting:", { title, finalDate, scheduledTime })
+    console.log("[v0] Scheduling meeting:", { title, scheduledDate, scheduledTime })
 
     try {
       const [hours, minutes] = scheduledTime.split(":").map(Number)
-      const scheduledDateTime = new Date(finalDate)
+      const scheduledDateTime = new Date(scheduledDate)
       scheduledDateTime.setHours(hours, minutes, 0, 0)
       const scheduledTimestamp = Timestamp.fromDate(scheduledDateTime)
 
@@ -129,9 +106,8 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
 
       setTitle("")
       setDescription("")
-      setScheduledDate(undefined)
+      setScheduledDate("")
       setScheduledTime("")
-      setFallbackDate("")
       onOpenChange(false)
     } catch (error: any) {
       console.error("[v0] Error scheduling meeting:", error)
@@ -188,76 +164,23 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
+                <Label htmlFor="date" className="flex items-center gap-2 text-sm">
                   <CalendarIcon className="h-4 w-4 text-primary" />
                   Date
                 </Label>
-                {!useNativePicker ? (
-                  <div className="space-y-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal bg-background",
-                            !scheduledDate && "text-muted-foreground",
-                          )}
-                          onClick={() => console.log("[v0] Calendar popover trigger clicked")}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {scheduledDate ? format(scheduledDate, "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={scheduledDate}
-                          onSelect={handleDateSelect}
-                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs"
-                      onClick={() => {
-                        console.log("[v0] Switching to native date picker")
-                        setUseNativePicker(true)
-                      }}
-                    >
-                      Use simple date picker
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Input
-                      type="date"
-                      value={fallbackDate}
-                      onChange={handleFallbackDateChange}
-                      min={minDate}
-                      className="bg-background"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs"
-                      onClick={() => {
-                        console.log("[v0] Switching to calendar picker")
-                        setUseNativePicker(false)
-                      }}
-                    >
-                      Use calendar picker
-                    </Button>
-                  </div>
-                )}
+                <Input
+                  id="date"
+                  type="date"
+                  value={scheduledDate}
+                  onChange={handleDateChange}
+                  min={minDate}
+                  className="bg-background"
+                  required
+                />
               </div>
 
               <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-sm">
+                <Label htmlFor="time" className="flex items-center gap-2 text-sm">
                   <Clock className="h-4 w-4 text-primary" />
                   Time (24-hour format)
                 </Label>
@@ -268,7 +191,7 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
                     setScheduledTime(value)
                   }}
                 >
-                  <SelectTrigger className="bg-background">
+                  <SelectTrigger id="time" className="bg-background">
                     <SelectValue placeholder="Select time" />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
@@ -281,16 +204,16 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
                 </Select>
               </div>
             </div>
-            {(scheduledDate || fallbackDate) && scheduledTime && (
+            {scheduledDate && scheduledTime && (
               <div className="mt-2 rounded-md bg-primary/10 p-2 text-center text-sm text-primary">
-                Scheduled for: {scheduledDate ? format(scheduledDate, "PPP") : fallbackDate} at {scheduledTime}
+                Scheduled for: {format(new Date(scheduledDate), "PPP")} at {scheduledTime}
               </div>
             )}
           </div>
 
           <Button
             onClick={scheduleMeeting}
-            disabled={loading || !title.trim() || (!scheduledDate && !fallbackDate) || !scheduledTime}
+            disabled={loading || !title.trim() || !scheduledDate || !scheduledTime}
             className="w-full"
           >
             {loading ? "Scheduling..." : "Schedule Meeting"}
