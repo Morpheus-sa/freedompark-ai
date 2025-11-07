@@ -10,6 +10,10 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/contexts/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Eye, EyeOff } from "lucide-react"
+import { PasswordStrengthIndicator, validatePassword } from "@/components/password-strength-indicator"
+import { ForgotPasswordDialog } from "@/components/forgot-password-dialog"
+import { EmailVerificationDialog } from "@/components/email-verification-dialog"
 
 interface AuthDialogProps {
   open: boolean
@@ -20,17 +24,33 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [displayName, setDisplayName] = useState("")
   const [fullName, setFullName] = useState("")
   const [company, setCompany] = useState("")
   const [jobTitle, setJobTitle] = useState("")
   const [department, setDepartment] = useState("")
   const [loading, setLoading] = useState(false)
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
+  const [verificationDialogOpen, setVerificationDialogOpen] = useState(false)
   const { signIn, signUp } = useAuth()
   const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (isSignUp) {
+      const validation = validatePassword(password)
+      if (!validation.valid) {
+        toast({
+          title: "Weak Password",
+          description: validation.message,
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
     setLoading(true)
 
     try {
@@ -45,14 +65,16 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
           title: "Account created",
           description: "Welcome to AI Meeting Notes!",
         })
+        onOpenChange(false)
+        setVerificationDialogOpen(true)
       } else {
         await signIn(email, password)
         toast({
           title: "Signed in",
           description: "Welcome back!",
         })
+        onOpenChange(false)
       }
-      onOpenChange(false)
       setEmail("")
       setPassword("")
       setDisplayName("")
@@ -72,116 +94,148 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isSignUp ? "Create Account" : "Sign In"}</DialogTitle>
-          <DialogDescription>
-            {isSignUp ? "Create an account to join collaborative meetings" : "Sign in to join or create meetings"}
-          </DialogDescription>
-        </DialogHeader>
-        <ScrollArea className="max-h-[60vh]">
-          <form onSubmit={handleSubmit} className="space-y-4 pr-4">
-            {isSignUp && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">
-                    Display Name <span className="text-destructive">*</span>
-                  </Label>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isSignUp ? "Create Account" : "Sign In"}</DialogTitle>
+            <DialogDescription>
+              {isSignUp ? "Create an account to join collaborative meetings" : "Sign in to join or create meetings"}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            <form onSubmit={handleSubmit} className="space-y-4 pr-4">
+              {isSignUp && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">
+                      Display Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="displayName"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Your display name"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">
+                      Full Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="fullName"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder=""
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company">
+                      Company Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="company"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      placeholder=""
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="jobTitle">
+                      Job Title <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="jobTitle"
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                      placeholder="Product Manager"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="department">
+                      Department <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="department"
+                      value={department}
+                      onChange={(e) => setDepartment(e.target.value)}
+                      placeholder="Engineering"
+                      required
+                    />
+                  </div>
+                </>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="email">
+                  Email <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">
+                  Password <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
                   <Input
-                    id="displayName"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Your display name"
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
                     required
+                    minLength={8}
+                    className="pr-10"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">
-                    Full Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder=""
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">
-                    Company Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="company"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
-                    placeholder=""
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="jobTitle">
-                    Job Title <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="jobTitle"
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                    placeholder="Product Manager"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="department">
-                    Department <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="department"
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                    placeholder="Engineering"
-                    required
-                  />
-                </div>
-              </>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email">
-                Email <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">
-                Password <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                minLength={6}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
-            </Button>
-            <Button type="button" variant="ghost" className="w-full" onClick={() => setIsSignUp(!isSignUp)}>
-              {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
-            </Button>
-          </form>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+                {isSignUp && password && (
+                  <div className="mt-2">
+                    <PasswordStrengthIndicator password={password} />
+                  </div>
+                )}
+                {!isSignUp && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenChange(false)
+                      setForgotPasswordOpen(true)
+                    }}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={() => setIsSignUp(!isSignUp)}>
+                {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
+              </Button>
+            </form>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      <ForgotPasswordDialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen} />
+      <EmailVerificationDialog open={verificationDialogOpen} onOpenChange={setVerificationDialogOpen} />
+    </>
   )
 }

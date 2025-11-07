@@ -7,6 +7,8 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile,
+  sendPasswordResetEmail,
+  sendEmailVerification,
   type User as FirebaseUser,
 } from "firebase/auth"
 import { doc, setDoc } from "firebase/firestore"
@@ -30,6 +32,8 @@ interface AuthContextType {
     },
   ) => Promise<void>
   signOut: () => Promise<void>
+  resetPassword: (email: string) => Promise<void>
+  verifyEmail: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -73,7 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password)
-    // User data will be saved in onAuthStateChanged
   }
 
   const signUp = async (
@@ -106,8 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userRef = doc(db, "users", userCredential.user.uid)
       await setDoc(userRef, userData)
       console.log("New user document created successfully with admin status:", isAdmin)
+
+      await sendEmailVerification(userCredential.user)
+      console.log("Verification email sent to:", userCredential.user.email)
     } catch (error) {
-      console.error("Error creating user document:", error)
+      console.error("Error creating user document or sending verification:", error)
     }
   }
 
@@ -115,7 +121,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth)
   }
 
-  return <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>{children}</AuthContext.Provider>
+  const resetPassword = async (email: string) => {
+    await sendPasswordResetEmail(auth, email)
+  }
+
+  const verifyEmail = async () => {
+    if (auth.currentUser) {
+      await sendEmailVerification(auth.currentUser)
+    }
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, resetPassword, verifyEmail }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
