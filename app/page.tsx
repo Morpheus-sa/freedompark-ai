@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { LogOut, Shield, Settings } from "lucide-react"
 import { ScheduledMeetingsList } from "@/components/scheduled-meetings-list"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function Home() {
   const { user, signOut } = useAuth()
@@ -66,6 +67,7 @@ export default function Home() {
                     </Badge>
                   )}
                 </div>
+                <ThemeToggle />
                 <NotificationCenter />
                 <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)} title="Profile Settings">
                   <Settings className="h-4 w-4" />

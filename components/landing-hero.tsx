@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Mic, Sparkles, Users } from "lucide-react"
 import { useEffect, useRef } from "react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function LandingHero({ onGetStarted }: { onGetStarted: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -78,7 +79,7 @@ export function LandingHero({ onGetStarted }: { onGetStarted: () => void }) {
   }, [])
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-background to-violet-950/20">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-background to-violet-950/20 dark:to-violet-950/20">
       {/* Animated background canvas */}
       <canvas ref={canvasRef} className="absolute inset-0 opacity-40" />
 
@@ -102,9 +103,12 @@ export function LandingHero({ onGetStarted }: { onGetStarted: () => void }) {
             </div>
             <span className="text-xl font-bold">MeetingAI</span>
           </div>
-          <Button variant="ghost" onClick={onGetStarted}>
-            Sign in
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" onClick={onGetStarted}>
+              Sign in
+            </Button>
+          </div>
         </header>
 
         {/* Hero content */}
