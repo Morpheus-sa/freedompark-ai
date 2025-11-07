@@ -13,6 +13,7 @@ import { ProfileSettingsDialog } from "@/components/profile-settings-dialog"
 import { LandingHero } from "@/components/landing-hero"
 import { AnimatedBackground } from "@/components/animated-background"
 import { NotificationCenter } from "@/components/notification-center"
+import { ProfileCompletionBanner } from "@/components/profile-completion-banner"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -79,6 +80,10 @@ export default function Home() {
             )}
           </div>
         </header>
+
+        <div className="mx-auto max-w-4xl mb-6">
+          <ProfileCompletionBanner />
+        </div>
 
         {activeMeetingId ? (
           <div className="mx-auto max-w-4xl">

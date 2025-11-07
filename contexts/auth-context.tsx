@@ -11,7 +11,7 @@ import {
   sendEmailVerification,
   type User as FirebaseUser,
 } from "firebase/auth"
-import { doc, setDoc } from "firebase/firestore"
+import { doc, setDoc, getDoc } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import type { User } from "@/types/meeting"
 import { isAdminEmail } from "@/lib/admin-config"
@@ -34,6 +34,7 @@ interface AuthContextType {
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
   verifyEmail: () => Promise<void>
+  refreshUserData: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -42,30 +43,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      if (firebaseUser) {
-        const isAdmin = isAdminEmail(firebaseUser.email || "")
+  const fetchUserData = async (firebaseUser: FirebaseUser): Promise<User> => {
+    console.log("[v0] Fetching user data from Firestore for:", firebaseUser.uid)
 
-        const userData: User = {
+    try {
+      const userRef = doc(db, "users", firebaseUser.uid)
+      const userDoc = await getDoc(userRef)
+
+      if (userDoc.exists()) {
+        const firestoreData = userDoc.data()
+        console.log("[v0] Firestore data retrieved:", firestoreData)
+
+        // Merge Firestore data with Firebase Auth data
+        const completeUserData: User = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || "",
+          displayName: firebaseUser.displayName || firestoreData.displayName || "Anonymous",
+          ...(firebaseUser.photoURL && { photoURL: firebaseUser.photoURL }),
+          isAdmin: firestoreData.isAdmin || false,
+          createdAt: firestoreData.createdAt || Date.now(),
+          fullName: firestoreData.fullName || "",
+          company: firestoreData.company || "",
+          jobTitle: firestoreData.jobTitle || "",
+          department: firestoreData.department || "",
+        }
+
+        console.log("[v0] Complete user data assembled:", completeUserData)
+        return completeUserData
+      } else {
+        console.log("[v0] User document doesn't exist, creating new one")
+        // Document doesn't exist, create it
+        const isAdmin = isAdminEmail(firebaseUser.email || "")
+        const newUserData: User = {
           uid: firebaseUser.uid,
           email: firebaseUser.email || "",
           displayName: firebaseUser.displayName || "Anonymous",
           ...(firebaseUser.photoURL && { photoURL: firebaseUser.photoURL }),
           isAdmin,
           createdAt: Date.now(),
+          fullName: "",
+          company: "",
+          jobTitle: "",
+          department: "",
         }
 
-        try {
-          console.log("Saving user data to Firestore:", { ...userData, isAdmin })
-          const userRef = doc(db, "users", firebaseUser.uid)
-          await setDoc(userRef, userData, { merge: true })
-          console.log("User data saved successfully with admin status:", isAdmin)
-        } catch (error) {
-          console.error("Error saving user data to Firestore:", error)
-        }
+        await setDoc(userRef, newUserData)
+        console.log("[v0] New user document created")
+        return newUserData
+      }
+    } catch (error) {
+      console.error("[v0] Error fetching user data from Firestore:", error)
+      // Fallback to basic Firebase Auth data
+      const isAdmin = isAdminEmail(firebaseUser.email || "")
+      return {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || "",
+        displayName: firebaseUser.displayName || "Anonymous",
+        ...(firebaseUser.photoURL && { photoURL: firebaseUser.photoURL }),
+        isAdmin,
+        createdAt: Date.now(),
+        fullName: "",
+        company: "",
+        jobTitle: "",
+        department: "",
+      }
+    }
+  }
 
-        setUser(userData)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      console.log("[v0] Auth state changed:", firebaseUser?.email || "signed out")
+
+      if (firebaseUser) {
+        const completeUserData = await fetchUserData(firebaseUser)
+        setUser(completeUserData)
       } else {
         setUser(null)
       }
@@ -90,6 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       department?: string
     },
   ) => {
+    console.log("[v0] Signing up with additional fields:", additionalFields)
+
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(userCredential.user, { displayName })
 
@@ -101,19 +154,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       displayName,
       isAdmin,
       createdAt: Date.now(),
-      ...additionalFields,
+      fullName: additionalFields?.fullName || "",
+      company: additionalFields?.company || "",
+      jobTitle: additionalFields?.jobTitle || "",
+      department: additionalFields?.department || "",
     }
 
     try {
-      console.log("Creating new user document in Firestore:", { ...userData, isAdmin })
+      console.log("[v0] Creating user document with complete profile data:", userData)
       const userRef = doc(db, "users", userCredential.user.uid)
       await setDoc(userRef, userData)
-      console.log("New user document created successfully with admin status:", isAdmin)
+      console.log("[v0] User document created successfully")
 
       await sendEmailVerification(userCredential.user)
-      console.log("Verification email sent to:", userCredential.user.email)
+      console.log("[v0] Verification email sent")
     } catch (error) {
-      console.error("Error creating user document or sending verification:", error)
+      console.error("[v0] Error creating user document or sending verification:", error)
+      throw error
     }
   }
 
@@ -131,8 +188,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const refreshUserData = async () => {
+    if (auth.currentUser) {
+      console.log("[v0] Manually refreshing user data")
+      const completeUserData = await fetchUserData(auth.currentUser)
+      setUser(completeUserData)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, resetPassword, verifyEmail }}>
+    <AuthContext.Provider
+      value={{ user, loading, signIn, signUp, signOut, resetPassword, verifyEmail, refreshUserData }}
+    >
       {children}
     </AuthContext.Provider>
   )
