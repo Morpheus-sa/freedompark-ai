@@ -18,20 +18,6 @@ export const SUPPORTED_LANGUAGES = [
   { code: "xh-ZA", name: "Xhosa", flag: "🇿🇦" },
   { code: "st-ZA", name: "Sesotho", flag: "🇿🇦" },
   { code: "tn-ZA", name: "Setswana", flag: "🇿🇦" },
-  { code: "en-US", name: "English (US)", flag: "🇺🇸" },
-  { code: "en-GB", name: "English (UK)", flag: "🇬🇧" },
-  { code: "es-ES", name: "Spanish", flag: "🇪🇸" },
-  { code: "fr-FR", name: "French", flag: "🇫🇷" },
-  { code: "de-DE", name: "German", flag: "🇩🇪" },
-  { code: "pt-PT", name: "Portuguese", flag: "🇵🇹" },
-  { code: "it-IT", name: "Italian", flag: "🇮🇹" },
-  { code: "nl-NL", name: "Dutch", flag: "🇳🇱" },
-  { code: "ar-SA", name: "Arabic", flag: "🇸🇦" },
-  { code: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳" },
-  { code: "ja-JP", name: "Japanese", flag: "🇯🇵" },
-  { code: "ko-KR", name: "Korean", flag: "🇰🇷" },
-  { code: "hi-IN", name: "Hindi", flag: "🇮🇳" },
-  { code: "ru-RU", name: "Russian", flag: "🇷🇺" },
 ]
 
 interface LanguageSelectorProps {
@@ -60,40 +46,20 @@ export function LanguageSelector({
             </span>
           </Badge>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="max-h-[400px] w-[280px] overflow-y-auto">
+        <DropdownMenuContent align="end" className="w-[280px]">
           <DropdownMenuLabel>Select Language</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <div className="space-y-1">
-            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-              South African Languages
-            </DropdownMenuLabel>
-            {SUPPORTED_LANGUAGES.filter((lang) => lang.code.endsWith("-ZA")).map((language) => (
-              <DropdownMenuItem
-                key={language.code}
-                onClick={() => onLanguageChange(language.code)}
-                className="cursor-pointer"
-              >
-                <span className="mr-2">{language.flag}</span>
-                <span className="flex-1">{language.name}</span>
-                {selectedLanguage === language.code && <Check className="h-4 w-4 text-primary" />}
-              </DropdownMenuItem>
-            ))}
-          </div>
-          <DropdownMenuSeparator />
-          <div className="space-y-1">
-            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Other Languages</DropdownMenuLabel>
-            {SUPPORTED_LANGUAGES.filter((lang) => !lang.code.endsWith("-ZA")).map((language) => (
-              <DropdownMenuItem
-                key={language.code}
-                onClick={() => onLanguageChange(language.code)}
-                className="cursor-pointer"
-              >
-                <span className="mr-2">{language.flag}</span>
-                <span className="flex-1">{language.name}</span>
-                {selectedLanguage === language.code && <Check className="h-4 w-4 text-primary" />}
-              </DropdownMenuItem>
-            ))}
-          </div>
+          {SUPPORTED_LANGUAGES.map((language) => (
+            <DropdownMenuItem
+              key={language.code}
+              onClick={() => onLanguageChange(language.code)}
+              className="cursor-pointer"
+            >
+              <span className="mr-2">{language.flag}</span>
+              <span className="flex-1">{language.name}</span>
+              {selectedLanguage === language.code && <Check className="h-4 w-4 text-primary" />}
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
     )
@@ -109,40 +75,20 @@ export function LanguageSelector({
           </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="max-h-[400px] w-[280px] overflow-y-auto">
+      <DropdownMenuContent align="end" className="w-[280px]">
         <DropdownMenuLabel>Select Language</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <div className="space-y-1">
-          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-            South African Languages
-          </DropdownMenuLabel>
-          {SUPPORTED_LANGUAGES.filter((lang) => lang.code.endsWith("-ZA")).map((language) => (
-            <DropdownMenuItem
-              key={language.code}
-              onClick={() => onLanguageChange(language.code)}
-              className="cursor-pointer"
-            >
-              <span className="mr-2">{language.flag}</span>
-              <span className="flex-1">{language.name}</span>
-              {selectedLanguage === language.code && <Check className="h-4 w-4 text-primary" />}
-            </DropdownMenuItem>
-          ))}
-        </div>
-        <DropdownMenuSeparator />
-        <div className="space-y-1">
-          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Other Languages</DropdownMenuLabel>
-          {SUPPORTED_LANGUAGES.filter((lang) => !lang.code.endsWith("-ZA")).map((language) => (
-            <DropdownMenuItem
-              key={language.code}
-              onClick={() => onLanguageChange(language.code)}
-              className="cursor-pointer"
-            >
-              <span className="mr-2">{language.flag}</span>
-              <span className="flex-1">{language.name}</span>
-              {selectedLanguage === language.code && <Check className="h-4 w-4 text-primary" />}
-            </DropdownMenuItem>
-          ))}
-        </div>
+        {SUPPORTED_LANGUAGES.map((language) => (
+          <DropdownMenuItem
+            key={language.code}
+            onClick={() => onLanguageChange(language.code)}
+            className="cursor-pointer"
+          >
+            <span className="mr-2">{language.flag}</span>
+            <span className="flex-1">{language.name}</span>
+            {selectedLanguage === language.code && <Check className="h-4 w-4 text-primary" />}
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   )
