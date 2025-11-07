@@ -15,6 +15,7 @@ import { doc, setDoc, getDoc } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 import type { User } from "@/types/meeting"
 import { isAdminEmail } from "@/lib/admin-config"
+import { logActivity } from "@/lib/activity-logger"
 
 interface AuthContextType {
   user: User | null
@@ -127,7 +128,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password)
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+
+    await logActivity(
+      userCredential.user.uid,
+      userCredential.user.email || "",
+      userCredential.user.displayName || "Anonymous",
+      "user_login",
+      `${userCredential.user.displayName || "User"} logged in`,
+    )
   }
 
   const signUp = async (
@@ -168,6 +177,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await sendEmailVerification(userCredential.user)
       console.log("[v0] Verification email sent")
+
+      await logActivity(
+        userCredential.user.uid,
+        userCredential.user.email || "",
+        displayName,
+        "user_created",
+        `New user ${displayName} created an account`,
+      )
     } catch (error) {
       console.error("[v0] Error creating user document or sending verification:", error)
       throw error
@@ -175,6 +192,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
+    if (user) {
+      await logActivity(user.uid, user.email, user.displayName, "user_logout", `${user.displayName} logged out`)
+    }
+
     await firebaseSignOut(auth)
   }
 

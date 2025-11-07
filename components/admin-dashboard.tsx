@@ -6,18 +6,15 @@ import { db } from "@/lib/firebase"
 import type { User, Meeting } from "@/types/meeting"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Shield, Users, Calendar, Search, Mail, Clock, Briefcase, Building2, UserIcon } from "lucide-react"
-import { formatDistanceToNow } from "date-fns"
+import { Shield, Users, Calendar, Clock, ActivityIcon, UserCog, TrendingUp } from "lucide-react"
 import { UserMeetingRecordsDialog } from "./user-meeting-records-dialog"
+import { UserManagementPanel } from "./user-management-panel"
+import { ActivityLogsPanel } from "./activity-logs-panel"
 
 export function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([])
   const [meetings, setMeetings] = useState<Meeting[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showRecordsDialog, setShowRecordsDialog] = useState(false)
@@ -65,35 +62,18 @@ export function AdminDashboard() {
     }
   }, [])
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.department?.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
-
-  const getUserMeetings = (userId: string) => {
-    return meetings.filter((meeting) => meeting.participants.includes(userId))
-  }
-
-  const handleViewMeetingHistory = (user: User) => {
-    setSelectedUser(user)
-    setShowRecordsDialog(true)
-  }
-
-  const formatTimestamp = (timestamp: number | undefined) => {
-    if (!timestamp || typeof timestamp !== "number" || isNaN(timestamp)) {
-      return "Unknown"
-    }
-    try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true })
-    } catch (error) {
-      console.error("Error formatting timestamp:", error)
-      return "Unknown"
-    }
+  const stats = {
+    totalUsers: users.length,
+    adminUsers: users.filter((u) => u.isAdmin).length,
+    totalMeetings: meetings.length,
+    activeMeetings: meetings.filter((m) => m.isActive).length,
+    scheduledMeetings: meetings.filter((m) => m.isScheduled && !m.isActive).length,
+    recentActivity: meetings.filter((m) => Date.now() - m.createdAt < 24 * 60 * 60 * 1000).length,
+    totalTranscripts: meetings.reduce((sum, m) => sum + (m.transcript?.length || 0), 0),
+    avgParticipants:
+      meetings.length > 0
+        ? (meetings.reduce((sum, m) => sum + m.participants.length, 0) / meetings.length).toFixed(1)
+        : "0",
   }
 
   if (loading) {
@@ -111,234 +91,202 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-purple-500/20 bg-gradient-to-r from-purple-500/10 to-blue-500/10">
+      <Card className="border-purple-500/20 bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-cyan-500/10">
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-purple-500" />
-            <CardTitle>Admin Dashboard</CardTitle>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="h-6 w-6 text-purple-500" />
+                <CardTitle className="text-2xl">Admin Dashboard</CardTitle>
+              </div>
+              <CardDescription>Comprehensive system management and insights</CardDescription>
+            </div>
+            <Badge variant="secondary" className="gap-1 text-sm px-3 py-1">
+              <ActivityIcon className="h-4 w-4" />
+              Live Updates
+            </Badge>
           </div>
-          <CardDescription>Manage users and access meeting records</CardDescription>
         </CardHeader>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {users.filter((u) => u.isAdmin).length} admin{users.filter((u) => u.isAdmin).length !== 1 ? "s" : ""}
+            <div className="text-2xl font-bold text-foreground">{stats.totalUsers}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.adminUsers} admin{stats.adminUsers !== 1 ? "s" : ""}
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Calendar className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{meetings.length}</div>
-            <p className="text-xs text-muted-foreground">{meetings.filter((m) => m.isActive).length} active</p>
+            <div className="text-2xl font-bold text-foreground">{stats.totalMeetings}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.activeMeetings} active • {stats.scheduledMeetings} scheduled
+            </p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-cyan-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {meetings.filter((m) => Date.now() - m.createdAt < 24 * 60 * 60 * 1000).length}
-            </div>
-            <p className="text-xs text-muted-foreground">meetings in last 24h</p>
+            <div className="text-2xl font-bold text-foreground">{stats.recentActivity}</div>
+            <p className="text-xs text-muted-foreground mt-1">meetings in last 24h</p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Engagement</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{stats.avgParticipants}</div>
+            <p className="text-xs text-muted-foreground mt-1">avg participants per meeting</p>
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="users" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="meetings">All Meetings</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="users" className="gap-2">
+            <UserCog className="h-4 w-4" />
+            User Management
+          </TabsTrigger>
+          <TabsTrigger value="activity" className="gap-2">
+            <ActivityIcon className="h-4 w-4" />
+            Activity Logs
+          </TabsTrigger>
+          <TabsTrigger value="meetings" className="gap-2">
+            <Calendar className="h-4 w-4" />
+            All Meetings
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="users" className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search users by name, email, company, job title..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-
-          <ScrollArea className="h-[600px]">
-            <div className="space-y-3">
-              {filteredUsers.map((user) => {
-                const userMeetings = getUserMeetings(user.uid)
-                const activeMeetings = userMeetings.filter((m) => m.isActive)
-                const pastMeetings = userMeetings.filter((m) => !m.isActive)
-
-                return (
-                  <Card key={user.uid}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-2">
-                            <CardTitle className="text-base">{user.displayName}</CardTitle>
-                            {user.isAdmin && (
-                              <Badge variant="secondary" className="gap-1">
-                                <Shield className="h-3 w-3" />
-                                Admin
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Mail className="h-3 w-3" />
-                            {user.email}
-                          </div>
-                          {(user.fullName || user.company || user.jobTitle || user.department) && (
-                            <div className="mt-3 space-y-1.5 rounded-md border border-border/50 bg-muted/30 p-3">
-                              <p className="text-xs font-semibold text-foreground/80 mb-2">Professional Profile</p>
-                              {user.fullName && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span className="text-foreground">{user.fullName}</span>
-                                </div>
-                              )}
-                              {user.company && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span className="text-foreground">{user.company}</span>
-                                </div>
-                              )}
-                              {user.jobTitle && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span className="text-foreground">{user.jobTitle}</span>
-                                  {user.department && (
-                                    <span className="text-muted-foreground">• {user.department}</span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {user.createdAt && (
-                            <p className="text-xs text-muted-foreground">Joined {formatTimestamp(user.createdAt)}</p>
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex gap-4 text-sm">
-                          <div>
-                            <span className="font-medium">{activeMeetings.length}</span>
-                            <span className="text-muted-foreground">
-                              {" "}
-                              active meeting{activeMeetings.length !== 1 ? "s" : ""}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium">{pastMeetings.length}</span>
-                            <span className="text-muted-foreground">
-                              {" "}
-                              past meeting{pastMeetings.length !== 1 ? "s" : ""}
-                            </span>
-                          </div>
-                        </div>
-
-                        {pastMeetings.length > 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full bg-transparent"
-                            onClick={() => handleViewMeetingHistory(user)}
-                          >
-                            View Meeting History ({pastMeetings.length})
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-
-              {filteredUsers.length === 0 && (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <p className="text-sm text-muted-foreground">No users found matching your search.</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </ScrollArea>
+        <TabsContent value="users">
+          <UserManagementPanel />
         </TabsContent>
 
-        <TabsContent value="meetings" className="space-y-4">
-          <ScrollArea className="h-[600px]">
-            <div className="space-y-3">
-              {meetings.map((meeting) => (
-                <Card key={meeting.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <CardTitle className="text-base">{meeting.title}</CardTitle>
-                          {meeting.isActive ? (
-                            <Badge variant="default">Active</Badge>
-                          ) : (
-                            <Badge variant="secondary">Ended</Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">{formatTimestamp(meeting.createdAt)}</p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div>
-                        <span className="font-medium">{meeting.participants.length}</span>
-                        <span className="text-muted-foreground">
-                          {" "}
-                          participant{meeting.participants.length !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                      {meeting.transcript && (
-                        <div>
-                          <span className="font-medium">{meeting.transcript.length}</span>
-                          <span className="text-muted-foreground">
-                            {" "}
-                            transcript segment{meeting.transcript.length !== 1 ? "s" : ""}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+        <TabsContent value="activity">
+          <ActivityLogsPanel />
+        </TabsContent>
 
-              {meetings.length === 0 && (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <p className="text-sm text-muted-foreground">No meetings found.</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </ScrollArea>
+        <TabsContent value="meetings">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Meeting Overview
+              </CardTitle>
+              <CardDescription>All meetings across the platform</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Active Meetings Section */}
+                {stats.activeMeetings > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground mb-3">Active Meetings</h3>
+                    <div className="space-y-2">
+                      {meetings
+                        .filter((m) => m.isActive)
+                        .map((meeting) => (
+                          <Card key={meeting.id} className="border-green-500/20 bg-green-500/5">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className="font-medium text-foreground">{meeting.title}</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {meeting.participants.length} participant
+                                    {meeting.participants.length !== 1 ? "s" : ""}
+                                  </p>
+                                </div>
+                                <Badge variant="default" className="bg-green-500">
+                                  Live
+                                </Badge>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Scheduled Meetings Section */}
+                {stats.scheduledMeetings > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground mb-3">Scheduled Meetings</h3>
+                    <div className="space-y-2">
+                      {meetings
+                        .filter((m) => m.isScheduled && !m.isActive)
+                        .slice(0, 5)
+                        .map((meeting) => (
+                          <Card key={meeting.id} className="border-blue-500/20 bg-blue-500/5">
+                            <CardContent className="p-4">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className="font-medium text-foreground">{meeting.title}</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {meeting.scheduledFor
+                                      ? new Date(meeting.scheduledFor).toLocaleString("en-ZA")
+                                      : "No date set"}
+                                  </p>
+                                </div>
+                                <Badge variant="secondary">Scheduled</Badge>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Completed Meetings */}
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Recent Completed Meetings</h3>
+                  <div className="space-y-2">
+                    {meetings
+                      .filter((m) => !m.isActive && !m.isScheduled)
+                      .slice(0, 5)
+                      .map((meeting) => (
+                        <Card key={meeting.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-medium text-foreground">{meeting.title}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(meeting.createdAt).toLocaleDateString("en-ZA")} •{" "}
+                                  {meeting.participants.length} participants
+                                </p>
+                              </div>
+                              <Badge variant="outline">Ended</Badge>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
       {selectedUser && (
         <UserMeetingRecordsDialog
           user={selectedUser}
-          meetings={getUserMeetings(selectedUser.uid).filter((m) => !m.isActive)}
+          meetings={meetings.filter((m) => m.participants.includes(selectedUser.uid) && !m.isActive)}
           open={showRecordsDialog}
           onOpenChange={setShowRecordsDialog}
         />

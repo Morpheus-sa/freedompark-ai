@@ -14,6 +14,7 @@ import { LandingHero } from "@/components/landing-hero"
 import { AnimatedBackground } from "@/components/animated-background"
 import { NotificationCenter } from "@/components/notification-center"
 import { ProfileCompletionBanner } from "@/components/profile-completion-banner"
+import { UserDashboard } from "@/components/user-dashboard"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
@@ -91,10 +92,11 @@ export default function Home() {
           </div>
         ) : (
           <div className="mx-auto max-w-4xl">
-            <Tabs defaultValue={user.isAdmin ? "admin" : "active"} className="space-y-4">
+            <Tabs defaultValue={user.isAdmin ? "admin" : "dashboard"} className="space-y-4">
               <div className="flex items-center justify-between">
                 <TabsList>
                   {user.isAdmin && <TabsTrigger value="admin">Admin Dashboard</TabsTrigger>}
+                  <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                   <TabsTrigger value="active">Active Meetings</TabsTrigger>
                   <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
                   <TabsTrigger value="past">Past Meetings</TabsTrigger>
@@ -109,6 +111,10 @@ export default function Home() {
                   <AdminDashboard />
                 </TabsContent>
               )}
+
+              <TabsContent value="dashboard">
+                <UserDashboard />
+              </TabsContent>
 
               <TabsContent value="active" className="space-y-4">
                 <MeetingRoomList onJoinMeeting={handleJoinMeeting} />
