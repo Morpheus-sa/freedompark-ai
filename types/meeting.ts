@@ -25,6 +25,7 @@ export interface Meeting {
   isScheduled?: boolean
   scheduledFor?: number
   mutedParticipants?: string[]
+  language?: string
   summary?: {
     overview: string
     keyPoints: string[]
@@ -48,4 +49,5 @@ export interface User {
   company?: string
   jobTitle?: string
   department?: string
+  preferredLanguage?: string
 }

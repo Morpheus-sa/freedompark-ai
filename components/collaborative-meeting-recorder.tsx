@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Mic, MicOff, Users, Copy, Check, Sparkles, Crown, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ParticipantListPanel } from "@/components/participant-list-panel"
+import { LanguageSelector, SUPPORTED_LANGUAGES } from "@/components/language-selector"
 import type { Meeting, TranscriptSegment } from "@/types/meeting"
 
 interface CollaborativeMeetingRecorderProps {
@@ -26,6 +27,7 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
   const [interimTranscript, setInterimTranscript] = useState("")
   const [copied, setCopied] = useState(false)
   const [summarizing, setSummarizing] = useState(false)
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("en-ZA")
   const recognitionRef = useRef<any>(null)
   const isRecordingRef = useRef(false)
   const { user } = useAuth()
@@ -72,7 +74,7 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
     const recognition = new SpeechRecognition()
     recognition.continuous = true
     recognition.interimResults = true
-    recognition.lang = "en-US"
+    recognition.lang = selectedLanguage
 
     recognition.onresult = async (event: any) => {
       let interim = ""
@@ -134,7 +136,15 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
         recognitionRef.current.stop()
       }
     }
-  }, [meetingId, user, toast])
+  }, [meetingId, user, toast, selectedLanguage])
+
+  useEffect(() => {
+    if (user?.preferredLanguage) {
+      setSelectedLanguage(user.preferredLanguage)
+    } else if (meeting?.language) {
+      setSelectedLanguage(meeting.language)
+    }
+  }, [user, meeting])
 
   const startRecording = () => {
     if (isMuted) {
@@ -257,6 +267,34 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
     }
   }
 
+  const handleLanguageChange = async (languageCode: string) => {
+    if (isRecording) {
+      stopRecording()
+      toast({
+        title: "Language changed",
+        description: "Recording stopped. Start recording again with the new language.",
+      })
+    }
+
+    setSelectedLanguage(languageCode)
+
+    if (isHost && meeting) {
+      try {
+        const meetingRef = doc(db, "meetings", meetingId)
+        await updateDoc(meetingRef, {
+          language: languageCode,
+        })
+      } catch (error) {
+        console.error("Error updating meeting language:", error)
+      }
+    }
+
+    toast({
+      title: "Language updated",
+      description: `Transcription language set to ${SUPPORTED_LANGUAGES.find((l) => l.code === languageCode)?.name}`,
+    })
+  }
+
   if (!meeting) {
     return <div>Loading meeting...</div>
   }
@@ -301,6 +339,16 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
                 </AlertDescription>
               </Alert>
             )}
+
+            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
+              <span className="text-sm font-medium">Transcription Language:</span>
+              <LanguageSelector
+                selectedLanguage={selectedLanguage}
+                onLanguageChange={handleLanguageChange}
+                disabled={isRecording}
+                variant="badge"
+              />
+            </div>
 
             <div className="flex gap-2">
               {!isRecording ? (

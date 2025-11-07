@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast"
 import { User, AlertCircle, CheckCircle2 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { LanguageSelector } from "@/components/language-selector"
 
 interface ProfileSettingsDialogProps {
   open: boolean
@@ -34,6 +35,7 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
   const [company, setCompany] = useState("")
   const [jobTitle, setJobTitle] = useState("")
   const [department, setDepartment] = useState("")
+  const [preferredLanguage, setPreferredLanguage] = useState("en-ZA")
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
       setCompany(user.company || "")
       setJobTitle(user.jobTitle || "")
       setDepartment(user.department || "")
+      setPreferredLanguage(user.preferredLanguage || "en-ZA")
     }
   }, [user, open])
 
@@ -83,6 +86,7 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
         company: company.trim(),
         jobTitle: jobTitle.trim(),
         department: department.trim(),
+        preferredLanguage: preferredLanguage,
       })
 
       console.log("[v0] Profile updated successfully")
@@ -198,6 +202,16 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
                 placeholder="Engineering"
                 className={!department.trim() ? "border-destructive" : ""}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="language">Preferred Language</Label>
+              <LanguageSelector
+                selectedLanguage={preferredLanguage}
+                onLanguageChange={setPreferredLanguage}
+                variant="button"
+              />
+              <p className="text-xs text-muted-foreground">Your preferred language for meeting transcription</p>
             </div>
           </div>
         </ScrollArea>
