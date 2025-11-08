@@ -10,10 +10,12 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Mic, MicOff, Users, Copy, Check, Sparkles, Crown, AlertCircle } from "lucide-react"
+import { Mic, MicOff, Users, Check, Sparkles, Crown, AlertCircle, UserPlus, Share2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ParticipantListPanel } from "@/components/participant-list-panel"
 import { LanguageSelector, SUPPORTED_LANGUAGES } from "@/components/language-selector"
+import { AddParticipantsDialog } from "@/components/add-participants-dialog"
+import { sendNotification } from "@/lib/notification-service"
 import type { Meeting, TranscriptSegment } from "@/types/meeting"
 
 interface CollaborativeMeetingRecorderProps {
@@ -28,6 +30,7 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
   const [copied, setCopied] = useState(false)
   const [summarizing, setSummarizing] = useState(false)
   const [selectedLanguage, setSelectedLanguage] = useState<string>("en-ZA")
+  const [addParticipantsOpen, setAddParticipantsOpen] = useState(false)
   const recognitionRef = useRef<any>(null)
   const isRecordingRef = useRef(false)
   const { user } = useAuth()
@@ -184,14 +187,46 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
     })
   }
 
-  const copyMeetingId = () => {
-    navigator.clipboard.writeText(meetingId)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-    toast({
-      title: "Copied",
-      description: "Meeting ID copied to clipboard",
-    })
+  const shareMeeting = async () => {
+    if (!meeting) return
+
+    const shareText = meeting.shareCode
+      ? `Join my meeting: ${meeting.title}\n\nCode: ${meeting.shareCode}\nID: ${meetingId}`
+      : `Join my meeting: ${meeting.title}\n\nMeeting ID: ${meetingId}`
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: meeting.title,
+          text: shareText,
+        })
+        toast({
+          title: "Meeting shared",
+          description: "Share details sent successfully",
+        })
+        return
+      } catch (error) {
+        console.log("[v0] Native share cancelled or failed")
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareText)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+      toast({
+        title: "Copied to clipboard",
+        description: meeting.shareCode
+          ? `Meeting code ${meeting.shareCode} and ID copied`
+          : "Meeting ID copied to clipboard",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      })
+    }
   }
 
   const generateSummary = async () => {
@@ -253,9 +288,29 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
       await updateDoc(meetingRef, {
         isActive: false,
       })
+
+      if (meeting) {
+        const notificationPromises = meeting.participants
+          .filter((participantId) => participantId !== user?.uid)
+          .map((participantId) =>
+            sendNotification(
+              participantId,
+              "meeting_ended",
+              "Meeting Ended",
+              `"${meeting.title}" has ended. View the transcript and summary in Past Meetings.`,
+              {
+                meetingId: meeting.id,
+                meetingTitle: meeting.title,
+              },
+            ),
+          )
+
+        await Promise.all(notificationPromises)
+      }
+
       toast({
         title: "Meeting ended",
-        description: "The meeting has been closed",
+        description: "All participants have been notified",
       })
       onEndMeeting()
     } catch (error: any) {
@@ -323,11 +378,26 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
                   {uniqueSpeakers.length > 0 &&
                     ` • ${uniqueSpeakers.length} speaker${uniqueSpeakers.length !== 1 ? "s" : ""}`}
                 </CardDescription>
+                {meeting.shareCode && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <Badge variant="outline" className="font-mono text-xs">
+                      Code: {meeting.shareCode}
+                    </Badge>
+                  </div>
+                )}
               </div>
-              <Button variant="outline" size="sm" onClick={copyMeetingId}>
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                <span className="ml-2">Share ID</span>
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={shareMeeting}>
+                  {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                  <span className="ml-2">Share</span>
+                </Button>
+                {(isHost || user?.isAdmin) && (
+                  <Button variant="outline" size="sm" onClick={() => setAddParticipantsOpen(true)}>
+                    <UserPlus className="h-4 w-4" />
+                    <span className="ml-2">Add</span>
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -501,6 +571,10 @@ export function CollaborativeMeetingRecorder({ meetingId, onEndMeeting }: Collab
       <div className="lg:sticky lg:top-4 lg:h-fit">
         <ParticipantListPanel meeting={meeting} />
       </div>
+
+      {meeting && (
+        <AddParticipantsDialog meeting={meeting} open={addParticipantsOpen} onOpenChange={setAddParticipantsOpen} />
+      )}
     </div>
   )
 }

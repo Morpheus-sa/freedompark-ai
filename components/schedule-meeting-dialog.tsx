@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CalendarIcon, Clock } from "lucide-react"
 import { format } from "date-fns"
 import { useToast } from "@/components/ui/use-toast"
+import { generateMeetingCode } from "@/lib/meeting-code-generator"
+import { sendNotification } from "@/lib/notification-service"
 
 interface ScheduleMeetingDialogProps {
   open: boolean
@@ -72,6 +74,9 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
     console.log("[v0] Scheduling meeting:", { title, scheduledDate, scheduledTime })
 
     try {
+      const shareCode = generateMeetingCode()
+      console.log("[v0] Generated share code:", shareCode)
+
       const [hours, minutes] = scheduledTime.split(":").map(Number)
       const scheduledDateTime = new Date(scheduledDate)
       scheduledDateTime.setHours(hours, minutes, 0, 0)
@@ -80,28 +85,45 @@ export function ScheduleMeetingDialog({ open, onOpenChange }: ScheduleMeetingDia
       const docRef = await addDoc(collection(db, "meetings"), {
         title: title.trim(),
         description: description.trim(),
+        shareCode,
         createdAt: Timestamp.now(),
         createdBy: user.uid,
         participants: [user.uid],
+        invitedParticipants: [],
         transcript: [],
         isActive: false,
         isScheduled: true,
         scheduledFor: scheduledTimestamp,
       })
 
-      console.log("[v0] Meeting scheduled successfully with ID:", docRef.id)
+      console.log("[v0] Meeting scheduled successfully with ID:", docRef.id, "Code:", shareCode)
+
+      await sendNotification(
+        user.uid,
+        "meeting_scheduled",
+        "Meeting Scheduled",
+        `"${title}" scheduled for ${format(scheduledDateTime, "PPP")} at ${scheduledTime}`,
+        {
+          meetingId: docRef.id,
+          meetingTitle: title,
+          meetingCode: shareCode,
+        },
+      )
 
       toast({
-        title: "✓ Meeting Scheduled Successfully",
+        title: "Meeting Scheduled Successfully",
         description: (
-          <div className="mt-2 space-y-1">
+          <div className="mt-2 space-y-2">
             <p className="font-semibold">{title}</p>
             <p className="text-sm">📅 {format(scheduledDateTime, "EEEE, MMMM d, yyyy")}</p>
             <p className="text-sm">🕐 {scheduledTime} (24-hour format)</p>
+            <div className="mt-2 rounded-md bg-primary/20 px-2 py-1">
+              <p className="text-xs font-medium">Share Code: {shareCode}</p>
+            </div>
             {description && <p className="mt-2 text-xs text-muted-foreground">{description}</p>}
           </div>
         ),
-        duration: 8000,
+        duration: 10000,
       })
 
       setTitle("")

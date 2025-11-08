@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore"
+import { doc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/contexts/auth-context"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+import { formatMeetingCode, isValidMeetingCode } from "@/lib/meeting-code-generator"
 
 interface JoinMeetingDialogProps {
   open: boolean
@@ -17,43 +18,67 @@ interface JoinMeetingDialogProps {
 }
 
 export function JoinMeetingDialog({ open, onOpenChange, onJoinSuccess }: JoinMeetingDialogProps) {
-  const [meetingId, setMeetingId] = useState("")
+  const [meetingCode, setMeetingCode] = useState("")
   const [loading, setLoading] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
 
   const joinMeeting = async () => {
-    if (!user || !meetingId.trim()) return
+    if (!user || !meetingCode.trim()) return
 
     setLoading(true)
-    console.log("Attempting to join meeting:", meetingId)
+    const codeOrId = meetingCode.trim()
+    console.log("[v0] Attempting to join with code/ID:", codeOrId)
 
     try {
-      const meetingRef = doc(db, "meetings", meetingId)
-      const meetingSnap = await getDoc(meetingRef)
+      let meetingId: string | null = null
+      let meetingRef
 
-      console.log("Meeting exists:", meetingSnap.exists())
+      // Check if input is a valid meeting code format (XXXX-XXXX)
+      if (isValidMeetingCode(codeOrId)) {
+        console.log("[v0] Input is a valid meeting code, searching...")
+        const formattedCode = formatMeetingCode(codeOrId)
+
+        // Query Firestore for meeting with this code
+        const meetingsQuery = query(collection(db, "meetings"), where("shareCode", "==", formattedCode))
+        const querySnapshot = await getDocs(meetingsQuery)
+
+        if (!querySnapshot.empty) {
+          meetingId = querySnapshot.docs[0].id
+          console.log("[v0] Found meeting by code:", meetingId)
+        }
+      } else {
+        // Assume it's a meeting ID
+        meetingId = codeOrId
+        console.log("[v0] Input treated as meeting ID")
+      }
+
+      if (!meetingId) {
+        throw new Error("Meeting not found with this code")
+      }
+
+      meetingRef = doc(db, "meetings", meetingId)
+      const meetingSnap = await getDoc(meetingRef)
 
       if (!meetingSnap.exists()) {
         throw new Error("Meeting not found")
       }
 
       const meetingData = meetingSnap.data()
-      console.log("Meeting data:", meetingData)
 
       if (!meetingData.isActive) {
         throw new Error("This meeting has ended")
       }
 
       if (meetingData.participants?.includes(user.uid)) {
-        console.log("User already in meeting, joining directly")
+        console.log("[v0] User already in meeting, joining directly")
         onOpenChange(false)
-        setMeetingId("")
+        setMeetingCode("")
         onJoinSuccess(meetingId)
         return
       }
 
-      console.log("Adding user to participants")
+      console.log("[v0] Adding user to participants")
       await updateDoc(meetingRef, {
         participants: arrayUnion(user.uid),
       })
@@ -64,24 +89,24 @@ export function JoinMeetingDialog({ open, onOpenChange, onJoinSuccess }: JoinMee
       })
 
       onOpenChange(false)
-      setMeetingId("")
+      setMeetingCode("")
       onJoinSuccess(meetingId)
     } catch (error: any) {
-      console.error("Error joining meeting:", error)
-      const isPermissionError =
-        error.code === "permission-denied" ||
-        error.message?.includes("permission") ||
-        error.message?.includes("PERMISSION_DENIED")
-
+      console.error("[v0] Error joining meeting:", error)
       toast({
-        title: isPermissionError ? "Permission Denied" : "Error",
-        description: isPermissionError
-          ? "Firestore security rules are blocking access. Please deploy the firestore.rules file to your Firebase project."
-          : error.message || "Failed to join meeting",
+        title: "Error",
+        description: error.message || "Failed to join meeting. Check your code and try again.",
         variant: "destructive",
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCodeChange = (value: string) => {
+    const cleaned = value.replace(/[^A-Z0-9-]/gi, "").toUpperCase()
+    if (cleaned.length <= 9) {
+      setMeetingCode(cleaned)
     }
   }
 
@@ -90,20 +115,22 @@ export function JoinMeetingDialog({ open, onOpenChange, onJoinSuccess }: JoinMee
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Join Meeting</DialogTitle>
-          <DialogDescription>Enter the meeting ID to join an existing meeting</DialogDescription>
+          <DialogDescription>Enter the meeting code or ID to join an existing meeting</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="meetingId">Meeting ID</Label>
+            <Label htmlFor="meetingCode">Meeting Code / ID</Label>
             <Input
-              id="meetingId"
-              value={meetingId}
-              onChange={(e) => setMeetingId(e.target.value)}
-              placeholder="Enter meeting ID"
+              id="meetingCode"
+              value={meetingCode}
+              onChange={(e) => handleCodeChange(e.target.value)}
+              placeholder="e.g., ABCD-1234"
               onKeyDown={(e) => e.key === "Enter" && joinMeeting()}
+              className="font-mono text-center text-lg tracking-wider"
             />
+            <p className="text-xs text-muted-foreground">Enter either a meeting code (ABCD-1234) or full meeting ID</p>
           </div>
-          <Button onClick={joinMeeting} disabled={loading || !meetingId.trim()} className="w-full">
+          <Button onClick={joinMeeting} disabled={loading || !meetingCode.trim()} className="w-full">
             {loading ? "Joining..." : "Join Meeting"}
           </Button>
         </div>

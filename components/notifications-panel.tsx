@@ -9,11 +9,13 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Bell, Calendar, UserPlus, PlayCircle, StopCircle, Check, Info } from "lucide-react"
 import type { Notification } from "@/types/notification"
+import { useRouter } from "next/navigation"
 
-export function NotificationCenter() {
+export function NotificationsPanel() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [open, setOpen] = useState(false)
   const { user } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     if (!user) return
@@ -64,7 +66,14 @@ export function NotificationCenter() {
     if (!notification.read) {
       await markNotificationAsRead(notification.id)
     }
-    setOpen(false)
+
+    if (notification.actionUrl) {
+      router.push(notification.actionUrl)
+      setOpen(false)
+    } else if (notification.meetingId) {
+      // Could navigate to meeting if needed
+      setOpen(false)
+    }
   }
 
   const markAllAsRead = async () => {

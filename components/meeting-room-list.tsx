@@ -1,13 +1,26 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { collection, query, where, onSnapshot, orderBy, addDoc, Timestamp } from "firebase/firestore"
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  updateDoc,
+  arrayUnion,
+  orderBy,
+  getDoc,
+  addDoc,
+  Timestamp,
+} from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/contexts/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Dialog,
   DialogContent,
@@ -23,6 +36,8 @@ import { formatDistanceToNow } from "date-fns"
 import type { Meeting } from "@/types/meeting"
 import { ScheduleMeetingDialog } from "@/components/schedule-meeting-dialog"
 import { JoinMeetingDialog } from "@/components/join-meeting-dialog"
+import { generateMeetingCode } from "@/lib/meeting-code-generator"
+import { sendNotification } from "@/lib/notification-service"
 
 interface MeetingRoomListProps {
   onJoinMeeting: (meetingId: string) => void
@@ -92,30 +107,35 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
     }
 
     setLoading(true)
-    console.log("Creating meeting:", newMeetingTitle)
+    console.log("[v0] Creating meeting:", newMeetingTitle)
 
     try {
+      const shareCode = generateMeetingCode()
+      console.log("[v0] Generated share code:", shareCode)
+
       const docRef = await addDoc(collection(db, "meetings"), {
         title: newMeetingTitle,
+        shareCode,
         createdAt: Timestamp.now(),
         createdBy: user.uid,
         participants: [user.uid],
+        invitedParticipants: [],
         transcript: [],
         isActive: true,
       })
 
-      console.log("Meeting created with ID:", docRef.id)
+      console.log("[v0] Meeting created with ID:", docRef.id, "Code:", shareCode)
 
       toast({
         title: "Meeting created",
-        description: "You can now start recording",
+        description: `Share code: ${shareCode}`,
       })
 
       setDialogOpen(false)
       setNewMeetingTitle("")
       onJoinMeeting(docRef.id)
     } catch (error: any) {
-      console.error("Error creating meeting:", error)
+      console.error("[v0] Error creating meeting:", error)
       const isPermissionError =
         error.code === "permission-denied" ||
         error.message?.includes("permission") ||
@@ -130,6 +150,55 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const joinMeeting = async (meetingId: string) => {
+    if (!user) return
+
+    try {
+      const meetingRef = doc(db, "meetings", meetingId)
+      const meetingDoc = await getDoc(meetingRef)
+
+      if (!meetingDoc.exists()) {
+        toast({
+          title: "Error",
+          description: "Meeting not found",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const meetingData = meetingDoc.data() as Meeting
+
+      if (!meetingData.participants.includes(user.uid)) {
+        await updateDoc(meetingRef, {
+          participants: arrayUnion(user.uid),
+        })
+
+        if (meetingData.createdBy !== user.uid) {
+          await sendNotification(
+            meetingData.createdBy,
+            "participant_added",
+            "Participant Joined",
+            `${user.displayName} joined "${meetingData.title}"`,
+            {
+              meetingId: meetingData.id,
+              meetingTitle: meetingData.title,
+              meetingCode: meetingData.shareCode,
+            },
+          )
+        }
+      }
+
+      onJoinMeeting(meetingId)
+    } catch (error: any) {
+      console.error("Error joining meeting:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to join meeting",
+        variant: "destructive",
+      })
     }
   }
 
@@ -220,37 +289,41 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {meetings.map((meeting) => (
-                <button
-                  key={meeting.id}
-                  onClick={() => onJoinMeeting(meeting.id)}
-                  className="w-full rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-accent"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground">{meeting.title}</h3>
-                      <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {meeting.participants.length} participant{meeting.participants.length !== 1 ? "s" : ""}
-                        </span>
-                        {meeting.createdAt && (
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-2">
+                {meetings.map((meeting) => (
+                  <button
+                    key={meeting.id}
+                    onClick={() => joinMeeting(meeting.id)}
+                    className="w-full rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-accent"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-foreground">{meeting.title}</h3>
+                        <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDistanceToNow(
-                              meeting.createdAt instanceof Timestamp ? meeting.createdAt.toDate() : meeting.createdAt,
-                              { addSuffix: true },
-                            )}
+                            <Users className="h-3 w-3" />
+                            {meeting.participants.length} participant{meeting.participants.length !== 1 ? "s" : ""}
                           </span>
-                        )}
+                          {meeting.createdAt && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatDistanceToNow(
+                                meeting.createdAt instanceof Timestamp ? meeting.createdAt.toDate() : meeting.createdAt,
+                                { addSuffix: true },
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                        Active
                       </div>
                     </div>
-                    <div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">Active</div>
-                  </div>
-                </button>
-              ))}
-            </div>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
           )}
         </CardContent>
       </Card>

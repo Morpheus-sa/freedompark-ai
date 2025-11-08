@@ -21,24 +21,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Users, Search, Shield, Trash2, UserCog, Building2, Briefcase, Mail, Clock } from "lucide-react"
+import { Users, Search, Shield, Trash2, UserCog, Building2, Briefcase, Mail, Clock, Eye } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { logActivity } from "@/lib/activity-logger"
-
-interface UserStatus {
-  active: boolean
-  suspended: boolean
-  reason?: string
-}
+import { ViewProfileDialog } from "@/components/view-profile-dialog"
 
 export function UserManagementPanel() {
   const [users, setUsers] = useState<User[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false)
+  const [viewProfileOpen, setViewProfileOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const { user: currentUser } = useAuth()
@@ -184,149 +178,167 @@ export function UserManagementPanel() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <UserCog className="h-5 w-5" />
-              User Management
-            </CardTitle>
-            <CardDescription>Manage user roles, permissions, and accounts</CardDescription>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <UserCog className="h-5 w-5" />
+                User Management
+              </CardTitle>
+              <CardDescription>Manage user roles, permissions, and accounts</CardDescription>
+            </div>
+            <Badge variant="outline" className="text-sm">
+              {filteredUsers.length} {filteredUsers.length === 1 ? "user" : "users"}
+            </Badge>
           </div>
-          <Badge variant="outline" className="text-sm">
-            {filteredUsers.length} {filteredUsers.length === 1 ? "user" : "users"}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search users by name, email, or company..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search users by name, email, or company..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Filter by role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="admin">Admins Only</SelectItem>
+                <SelectItem value="user">Regular Users</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter by role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Users</SelectItem>
-              <SelectItem value="admin">Admins Only</SelectItem>
-              <SelectItem value="user">Regular Users</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
-        <ScrollArea className="h-[600px]">
-          <div className="space-y-3 pr-4">
-            {filteredUsers.map((user) => (
-              <Card key={user.uid} className="overflow-hidden">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <Avatar className="h-12 w-12 border-2 border-primary/20">
-                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                        {getInitials(user.displayName)}
-                      </AvatarFallback>
-                    </Avatar>
+          <ScrollArea className="h-[600px]">
+            <div className="space-y-3 pr-4">
+              {filteredUsers.map((user) => (
+                <Card key={user.uid} className="overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="h-12 w-12 border-2 border-primary/20">
+                        <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                          {getInitials(user.displayName)}
+                        </AvatarFallback>
+                      </Avatar>
 
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-foreground">{user.displayName}</h3>
-                          {user.isAdmin && (
-                            <Badge variant="secondary" className="gap-1">
-                              <Shield className="h-3 w-3" />
-                              Admin
-                            </Badge>
-                          )}
+                      <div className="flex-1 space-y-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-foreground">{user.displayName}</h3>
+                            {user.isAdmin && (
+                              <Badge variant="secondary" className="gap-1">
+                                <Shield className="h-3 w-3" />
+                                Admin
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Mail className="h-3 w-3" />
+                            {user.email}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          {user.email}
+
+                        {(user.fullName || user.company || user.jobTitle) && (
+                          <div className="grid gap-2 text-sm">
+                            {user.fullName && (
+                              <div className="flex items-center gap-2">
+                                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-foreground">{user.fullName}</span>
+                              </div>
+                            )}
+                            {user.company && (
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-foreground">{user.company}</span>
+                              </div>
+                            )}
+                            {user.jobTitle && (
+                              <div className="flex items-center gap-2">
+                                <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-foreground">
+                                  {user.jobTitle}
+                                  {user.department && ` • ${user.department}`}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {user.createdAt && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            Joined {formatTimestamp(user.createdAt)}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user)
+                              setViewProfileOpen(true)
+                            }}
+                            className="gap-1"
+                          >
+                            <Eye className="h-3 w-3" />
+                            View Profile
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleAdmin(user)}
+                            disabled={isSaving || user.uid === currentUser?.uid}
+                            className="gap-1"
+                          >
+                            <Shield className="h-3 w-3" />
+                            {user.isAdmin ? "Remove Admin" : "Make Admin"}
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user)
+                              setDeleteDialogOpen(true)
+                            }}
+                            disabled={isSaving || user.uid === currentUser?.uid}
+                            className="gap-1 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            Delete
+                          </Button>
                         </div>
-                      </div>
-
-                      {(user.fullName || user.company || user.jobTitle) && (
-                        <div className="grid gap-2 text-sm">
-                          {user.fullName && (
-                            <div className="flex items-center gap-2">
-                              <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-foreground">{user.fullName}</span>
-                            </div>
-                          )}
-                          {user.company && (
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-foreground">{user.company}</span>
-                            </div>
-                          )}
-                          {user.jobTitle && (
-                            <div className="flex items-center gap-2">
-                              <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
-                              <span className="text-foreground">
-                                {user.jobTitle}
-                                {user.department && ` • ${user.department}`}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {user.createdAt && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          Joined {formatTimestamp(user.createdAt)}
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleToggleAdmin(user)}
-                          disabled={isSaving || user.uid === currentUser?.uid}
-                          className="gap-1"
-                        >
-                          <Shield className="h-3 w-3" />
-                          {user.isAdmin ? "Remove Admin" : "Make Admin"}
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedUser(user)
-                            setDeleteDialogOpen(true)
-                          }}
-                          disabled={isSaving || user.uid === currentUser?.uid}
-                          className="gap-1 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          Delete
-                        </Button>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
 
-            {filteredUsers.length === 0 && (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground opacity-50" />
-                  <p className="text-sm text-muted-foreground">No users found matching your search</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </ScrollArea>
-      </CardContent>
+              {filteredUsers.length === 0 && (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground opacity-50" />
+                    <p className="text-sm text-muted-foreground">No users found matching your search</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      {/* View Profile Dialog */}
+      <ViewProfileDialog user={selectedUser} open={viewProfileOpen} onOpenChange={setViewProfileOpen} />
 
       {/* Delete User Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -350,6 +362,6 @@ export function UserManagementPanel() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </>
   )
 }

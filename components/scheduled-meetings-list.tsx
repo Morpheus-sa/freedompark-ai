@@ -13,6 +13,7 @@ import { Calendar, Users, Clock, Search, Trash2, Play, AlertCircle } from "lucid
 import { useToast } from "@/hooks/use-toast"
 import type { Meeting } from "@/types/meeting"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { sendNotification } from "@/lib/notification-service"
 
 interface ScheduledMeetingsListProps {
   onStartMeeting: (meetingId: string) => void
@@ -81,14 +82,35 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
 
   const startMeeting = async (meetingId: string) => {
     try {
+      const meeting = meetings.find((m) => m.id === meetingId)
+      if (!meeting) return
+
       await updateDoc(doc(db, "meetings", meetingId), {
         isActive: true,
         isScheduled: false,
       })
 
+      const notificationPromises = meeting.participants
+        .filter((participantId) => participantId !== user?.uid)
+        .map((participantId) =>
+          sendNotification(
+            participantId,
+            "meeting_started",
+            "Meeting Started",
+            `"${meeting.title}" has started. Join now!`,
+            {
+              meetingId: meeting.id,
+              meetingTitle: meeting.title,
+              meetingCode: meeting.shareCode,
+            },
+          ),
+        )
+
+      await Promise.all(notificationPromises)
+
       toast({
         title: "Meeting started",
-        description: "The scheduled meeting is now active",
+        description: "All participants have been notified",
       })
 
       onStartMeeting(meetingId)
@@ -113,10 +135,32 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
     }
 
     try {
+      const meeting = meetings.find((m) => m.id === meetingId)
+
       await deleteDoc(doc(db, "meetings", meetingId))
+
+      if (meeting) {
+        const notificationPromises = meeting.participants
+          .filter((participantId) => participantId !== user?.uid)
+          .map((participantId) =>
+            sendNotification(
+              participantId,
+              "meeting_updated",
+              "Meeting Cancelled",
+              `"${meetingTitle}" has been cancelled by ${user?.displayName}`,
+              {
+                meetingId: meeting.id,
+                meetingTitle: meeting.title,
+              },
+            ),
+          )
+
+        await Promise.all(notificationPromises)
+      }
+
       toast({
         title: "Meeting cancelled",
-        description: `"${meetingTitle}" has been removed`,
+        description: `"${meetingTitle}" has been removed and participants notified`,
       })
     } catch (error: any) {
       toast({

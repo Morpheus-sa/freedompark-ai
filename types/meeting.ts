@@ -15,11 +15,13 @@ export interface TranscriptSegment {
 
 export interface Meeting {
   id: string
+  shareCode?: string
   title: string
   description?: string
   createdAt: number
   createdBy: string
   participants: string[]
+  invitedParticipants?: string[]
   transcript: TranscriptSegment[]
   isActive: boolean
   isScheduled?: boolean
