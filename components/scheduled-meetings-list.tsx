@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Calendar, Users, Clock, Search, Trash2, Play, AlertCircle } from "lucide-react"
+import { Calendar, Users, Clock, Search, Trash2, Play, AlertCircle, Share2, Copy, Check } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Meeting } from "@/types/meeting"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -23,10 +23,10 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [currentTime, setCurrentTime] = useState(Date.now())
+  const [copiedMeetingId, setCopiedMeetingId] = useState<string | null>(null)
   const { user } = useAuth()
   const { toast } = useToast()
 
-  // Update current time every minute for countdown
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(Date.now())
@@ -248,7 +248,42 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
     }
   }
 
-  // Separate meetings into upcoming and ready to start
+  const copyShareableLink = (meeting: Meeting) => {
+    if (!meeting.shareCode) {
+      toast({
+        title: "Error",
+        description: "This meeting doesn't have a share code",
+        variant: "destructive",
+      })
+      return
+    }
+
+    const shareUrl = `${window.location.origin}?joinCode=${meeting.shareCode}`
+
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        setCopiedMeetingId(meeting.id)
+        toast({
+          title: "Link copied!",
+          description: "Share this link with participants to join the meeting",
+        })
+
+        // Reset copied state after 2 seconds
+        setTimeout(() => {
+          setCopiedMeetingId(null)
+        }, 2000)
+      })
+      .catch((error) => {
+        console.error("Failed to copy link:", error)
+        toast({
+          title: "Error",
+          description: "Failed to copy link to clipboard",
+          variant: "destructive",
+        })
+      })
+  }
+
   const upcomingMeetings = filteredMeetings.filter((m) => {
     const timeInfo = getTimeUntilMeeting(m.scheduledFor)
     return timeInfo && !timeInfo.isPast
@@ -342,6 +377,11 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                                       {timeInfo.text}
                                     </Badge>
                                   )}
+                                  {meeting.shareCode && (
+                                    <Badge variant="outline" className="gap-1 font-mono text-xs">
+                                      {meeting.shareCode}
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -351,6 +391,26 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                                 <Play className="mr-2 h-4 w-4" />
                                 Start Meeting
                               </Button>
+                              {meeting.shareCode && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => copyShareableLink(meeting)}
+                                  className="gap-2"
+                                >
+                                  {copiedMeetingId === meeting.id ? (
+                                    <>
+                                      <Check className="h-4 w-4" />
+                                      Copied
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Share2 className="h-4 w-4" />
+                                      Share
+                                    </>
+                                  )}
+                                </Button>
+                              )}
                               {user?.isAdmin && (
                                 <Button
                                   variant="outline"
@@ -409,32 +469,52 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                                       {timeInfo.text}
                                     </Badge>
                                   )}
+                                  {meeting.shareCode && (
+                                    <Badge variant="outline" className="gap-1 font-mono text-xs">
+                                      {meeting.shareCode}
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                {timeInfo?.canStart && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => startMeeting(meeting.id)}
-                                    className="h-8 px-2 text-primary hover:text-primary"
-                                    title="Start early"
-                                  >
-                                    <Play className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                {user?.isAdmin && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => cancelMeeting(meeting.id, meeting.title)}
-                                    className="h-8 px-2 text-muted-foreground hover:text-destructive"
-                                    title="Cancel meeting"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              {meeting.shareCode && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyShareableLink(meeting)}
+                                  className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                                  title="Copy share link"
+                                >
+                                  {copiedMeetingId === meeting.id ? (
+                                    <Check className="h-4 w-4 text-primary" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              )}
+                              {timeInfo?.canStart && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => startMeeting(meeting.id)}
+                                  className="h-8 px-2 text-primary hover:text-primary"
+                                  title="Start early"
+                                >
+                                  <Play className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {user?.isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => cancelMeeting(meeting.id, meeting.title)}
+                                  className="h-8 px-2 text-muted-foreground hover:text-destructive"
+                                  title="Cancel meeting"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </div>
