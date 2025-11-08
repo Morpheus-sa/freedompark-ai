@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { collection, query, onSnapshot, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore"
+import { collection, query, onSnapshot, orderBy, doc, deleteDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import type { User } from "@/types/meeting"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -77,46 +77,6 @@ export function UserManagementPanel() {
 
     return matchesSearch && matchesRole
   })
-
-  const handleToggleAdmin = async (user: User) => {
-    if (!currentUser) return
-
-    setIsSaving(true)
-    try {
-      const userRef = doc(db, "users", user.uid)
-      const newAdminStatus = !user.isAdmin
-
-      await updateDoc(userRef, {
-        isAdmin: newAdminStatus,
-      })
-
-      await logActivity(
-        currentUser.uid,
-        currentUser.email,
-        currentUser.displayName,
-        "user_role_changed",
-        `${currentUser.displayName} changed ${user.displayName}'s admin status to ${newAdminStatus}`,
-        {
-          targetUserId: user.uid,
-          targetUserEmail: user.email,
-          changes: { isAdmin: newAdminStatus },
-        },
-      )
-
-      toast({
-        title: "Role updated",
-        description: `${user.displayName} is now ${newAdminStatus ? "an admin" : "a regular user"}`,
-      })
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update user role",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
 
   const handleDeleteUser = async () => {
     if (!selectedUser || !currentUser) return
@@ -291,17 +251,6 @@ export function UserManagementPanel() {
                           >
                             <Eye className="h-3 w-3" />
                             View Profile
-                          </Button>
-
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleToggleAdmin(user)}
-                            disabled={isSaving || user.uid === currentUser?.uid}
-                            className="gap-1"
-                          >
-                            <Shield className="h-3 w-3" />
-                            {user.isAdmin ? "Remove Admin" : "Make Admin"}
                           </Button>
 
                           <Button
