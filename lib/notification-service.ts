@@ -15,18 +15,22 @@ export async function sendNotification(
   },
 ) {
   try {
-    await addDoc(collection(db, "notifications"), {
+    const notificationData: any = {
       userId,
       type,
       title,
       message,
-      meetingId: metadata?.meetingId,
-      meetingTitle: metadata?.meetingTitle,
-      meetingCode: metadata?.meetingCode,
-      actionUrl: metadata?.actionUrl,
       createdAt: Timestamp.now().toMillis(),
       read: false,
-    })
+    }
+
+    // Add optional metadata fields only if they exist
+    if (metadata?.meetingId) notificationData.meetingId = metadata.meetingId
+    if (metadata?.meetingTitle) notificationData.meetingTitle = metadata.meetingTitle
+    if (metadata?.meetingCode) notificationData.meetingCode = metadata.meetingCode
+    if (metadata?.actionUrl) notificationData.actionUrl = metadata.actionUrl
+
+    await addDoc(collection(db, "notifications"), notificationData)
     console.log("[v0] Notification sent:", { userId, type, title })
   } catch (error) {
     console.error("[v0] Error sending notification:", error)
