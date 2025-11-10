@@ -58,7 +58,13 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
 
     console.log("Setting up meetings listener for user:", user.uid)
 
-    const q = query(collection(db, "meetings"), where("isActive", "==", true), orderBy("createdAt", "desc"))
+    const q = query(
+      collection(db, "meetings"),
+      where("isActive", "==", true),
+      where("isDeleted", "!=", true),
+      orderBy("isDeleted", "asc"),
+      orderBy("createdAt", "desc"),
+    )
 
     const unsubscribe = onSnapshot(
       q,
@@ -122,6 +128,7 @@ export function MeetingRoomList({ onJoinMeeting }: MeetingRoomListProps) {
         invitedParticipants: [],
         transcript: [],
         isActive: true,
+        isDeleted: false,
       })
 
       console.log("[v0] Meeting created with ID:", docRef.id, "Code:", shareCode)

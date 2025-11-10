@@ -28,6 +28,9 @@ export interface Meeting {
   scheduledFor?: number
   mutedParticipants?: string[]
   language?: string
+  isDeleted?: boolean
+  deletedAt?: number
+  deletedBy?: string
   summary?: {
     overview: string
     keyPoints: string[]

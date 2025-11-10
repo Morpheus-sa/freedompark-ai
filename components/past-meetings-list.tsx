@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { collection, query, where, onSnapshot, orderBy, doc, deleteDoc, updateDoc } from "firebase/firestore"
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/contexts/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,7 +39,13 @@ export function PastMeetingsList() {
 
     console.log("Setting up past meetings listener for user:", user.uid)
 
-    const q = query(collection(db, "meetings"), where("isActive", "==", false), orderBy("createdAt", "desc"))
+    const q = query(
+      collection(db, "meetings"),
+      where("isActive", "==", false),
+      where("isDeleted", "!=", true),
+      orderBy("isDeleted", "asc"),
+      orderBy("createdAt", "desc"),
+    )
 
     const unsubscribe = onSnapshot(
       q,
@@ -88,18 +94,24 @@ export function PastMeetingsList() {
 
   const deleteMeeting = async (meetingId: string) => {
     try {
-      await deleteDoc(doc(db, "meetings", meetingId))
-      toast({
-        title: "Meeting deleted",
-        description: "The meeting has been removed",
+      await updateDoc(doc(db, "meetings", meetingId), {
+        isDeleted: true,
+        deletedAt: Date.now(),
+        deletedBy: user?.uid || "unknown",
       })
+
+      toast({
+        title: "Meeting archived",
+        description: "The meeting has been moved to archive",
+      })
+
       if (expandedId === meetingId) {
         setExpandedId(null)
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete meeting",
+        description: error.message || "Failed to archive meeting",
         variant: "destructive",
       })
     }

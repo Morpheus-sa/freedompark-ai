@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore"
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/contexts/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -44,6 +44,8 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
       collection(db, "meetings"),
       where("isScheduled", "==", true),
       where("isActive", "==", false),
+      where("isDeleted", "!=", true),
+      orderBy("isDeleted", "asc"),
       orderBy("scheduledFor", "asc"),
     )
 
@@ -137,7 +139,11 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
     try {
       const meeting = meetings.find((m) => m.id === meetingId)
 
-      await deleteDoc(doc(db, "meetings", meetingId))
+      await updateDoc(doc(db, "meetings", meetingId), {
+        isDeleted: true,
+        deletedAt: Date.now(),
+        deletedBy: user.uid,
+      })
 
       if (meeting) {
         const notificationPromises = meeting.participants
