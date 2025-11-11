@@ -31,9 +31,9 @@ export async function sendNotification(
     if (metadata?.actionUrl) notificationData.actionUrl = metadata.actionUrl
 
     await addDoc(collection(db, "notifications"), notificationData)
-    console.log("[v0] Notification sent:", { userId, type, title })
+    console.log("Notification sent:", { userId, type, title })
   } catch (error) {
-    console.error("[v0] Error sending notification:", error)
+    console.error("Error sending notification:", error)
   }
 }
 
