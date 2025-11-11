@@ -43,7 +43,7 @@ export async function markNotificationAsRead(notificationId: string) {
       read: true,
     })
   } catch (error) {
-    console.error("[v0] Error marking notification as read:", error)
+    console.error("Error marking notification as read:", error)
   }
 }
 
