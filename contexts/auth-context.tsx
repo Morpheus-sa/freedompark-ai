@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const fetchUserData = async (firebaseUser: FirebaseUser): Promise<User> => {
-    console.log("[v0] Fetching user data from Firestore for:", firebaseUser.uid)
+    console.log("Fetching user data from Firestore for:", firebaseUser.uid)
 
     try {
       const userRef = doc(db, "users", firebaseUser.uid)
@@ -69,10 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           department: firestoreData.department || "",
         }
 
-        console.log("[v0] Complete user data assembled:", completeUserData)
+        console.log("Complete user data assembled:", completeUserData)
         return completeUserData
       } else {
-        console.log("[v0] User document doesn't exist, creating new one")
+        console.log("User document doesn't exist, creating new one")
         // Document doesn't exist, create it
         const isAdmin = isAdminEmail(firebaseUser.email || "")
         const newUserData: User = {
@@ -89,11 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         await setDoc(userRef, newUserData)
-        console.log("[v0] New user document created")
+        console.log("New user document created")
         return newUserData
       }
     } catch (error) {
-      console.error("[v0] Error fetching user data from Firestore:", error)
+      console.error("Error fetching user data from Firestore:", error)
       // Fallback to basic Firebase Auth data
       const isAdmin = isAdminEmail(firebaseUser.email || "")
       return {
@@ -113,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-      console.log("[v0] Auth state changed:", firebaseUser?.email || "signed out")
+      console.log("Auth state changed:", firebaseUser?.email || "signed out")
 
       if (firebaseUser) {
         const completeUserData = await fetchUserData(firebaseUser)
@@ -150,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       department?: string
     },
   ) => {
-    console.log("[v0] Signing up with additional fields:", additionalFields)
+    console.log("Signing up with additional fields:", additionalFields)
 
     const userCredential = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(userCredential.user, { displayName })
@@ -170,13 +170,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      console.log("[v0] Creating user document with complete profile data:", userData)
+      console.log("Creating user document with complete profile data:", userData)
       const userRef = doc(db, "users", userCredential.user.uid)
       await setDoc(userRef, userData)
-      console.log("[v0] User document created successfully")
+      console.log("User document created successfully")
 
       await sendEmailVerification(userCredential.user)
-      console.log("[v0] Verification email sent")
+      console.log("Verification email sent")
 
       await logActivity(
         userCredential.user.uid,
@@ -186,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         `New user ${displayName} created an account`,
       )
     } catch (error) {
-      console.error("[v0] Error creating user document or sending verification:", error)
+      console.error("Error creating user document or sending verification:", error)
       throw error
     }
   }
@@ -211,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUserData = async () => {
     if (auth.currentUser) {
-      console.log("[v0] Manually refreshing user data")
+      console.log("Manually refreshing user data")
       const completeUserData = await fetchUserData(auth.currentUser)
       setUser(completeUserData)
     }
