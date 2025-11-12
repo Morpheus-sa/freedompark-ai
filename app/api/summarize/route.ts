@@ -66,7 +66,7 @@ Please provide a comprehensive summary with overview, key points, action items, 
       summary,
     })
   } catch (error) {
-    console.error("[v0] Summarization error:", error)
+    console.error("Summarization error:", error)
     return NextResponse.json({ error: "Failed to generate summary" }, { status: 500 })
   }
 }

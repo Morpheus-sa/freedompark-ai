@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { updateProfile } from "firebase/auth"
-import { doc, updateDoc } from "firebase/firestore"
-import { auth, db } from "@/lib/firebase"
-import { useAuth } from "@/contexts/auth-context"
+import { useState, useEffect } from "react";
+import { updateProfile } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { useAuth } from "@/contexts/auth-context";
 import {
   Dialog,
   DialogContent,
@@ -12,73 +12,80 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
-import { User, AlertCircle, CheckCircle2 } from "lucide-react"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { LanguageSelector } from "@/components/language-selector"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { User, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LanguageSelector } from "@/components/language-selector";
 
 interface ProfileSettingsDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDialogProps) {
-  const { user, refreshUserData } = useAuth()
-  const { toast } = useToast()
-  const [displayName, setDisplayName] = useState("")
-  const [fullName, setFullName] = useState("")
-  const [company, setCompany] = useState("")
-  const [jobTitle, setJobTitle] = useState("")
-  const [department, setDepartment] = useState("")
-  const [preferredLanguage, setPreferredLanguage] = useState("en-ZA")
-  const [isSaving, setIsSaving] = useState(false)
+export function ProfileSettingsDialog({
+  open,
+  onOpenChange,
+}: ProfileSettingsDialogProps) {
+  const { user, refreshUserData } = useAuth();
+  const { toast } = useToast();
+  const [displayName, setDisplayName] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [company, setCompany] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [department, setDepartment] = useState("");
+  const [preferredLanguage, setPreferredLanguage] = useState("en-ZA");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (user && open) {
-      console.log("[v0] Loading profile data into form:", user)
-      setDisplayName(user.displayName || "")
-      setFullName(user.fullName || "")
-      setCompany(user.company || "")
-      setJobTitle(user.jobTitle || "")
-      setDepartment(user.department || "")
-      setPreferredLanguage(user.preferredLanguage || "en-ZA")
+      console.log(" Loading profile data into form:", user);
+      setDisplayName(user.displayName || "");
+      setFullName(user.fullName || "");
+      setCompany(user.company || "");
+      setJobTitle(user.jobTitle || "");
+      setDepartment(user.department || "");
+      setPreferredLanguage(user.preferredLanguage || "en-ZA");
     }
-  }, [user, open])
+  }, [user, open]);
 
-  const isProfileIncomplete = !fullName?.trim() || !company?.trim() || !jobTitle?.trim() || !department?.trim()
+  const isProfileIncomplete =
+    !fullName?.trim() ||
+    !company?.trim() ||
+    !jobTitle?.trim() ||
+    !department?.trim();
 
   const handleSave = async () => {
-    if (!user || !auth.currentUser) return
+    if (!user || !auth.currentUser) return;
 
-    const errors: string[] = []
-    if (!displayName.trim()) errors.push("Display name is required")
-    if (!fullName.trim()) errors.push("Full name is required")
-    if (!company.trim()) errors.push("Company name is required")
-    if (!jobTitle.trim()) errors.push("Job title is required")
-    if (!department.trim()) errors.push("Department is required")
+    const errors: string[] = [];
+    if (!displayName.trim()) errors.push("Display name is required");
+    if (!fullName.trim()) errors.push("Full name is required");
+    if (!company.trim()) errors.push("Company name is required");
+    if (!jobTitle.trim()) errors.push("Job title is required");
+    if (!department.trim()) errors.push("Department is required");
 
     if (errors.length > 0) {
       toast({
         title: "Missing Information",
         description: errors.join(", "),
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsSaving(true)
+    setIsSaving(true);
     try {
-      console.log("[v0] Saving profile updates")
+      console.log(" Saving profile updates");
 
       // Update Firebase Auth profile
       await updateProfile(auth.currentUser, {
         displayName: displayName.trim(),
-      })
+      });
 
       await updateDoc(doc(db, "users", user.uid), {
         displayName: displayName.trim(),
@@ -87,28 +94,28 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
         jobTitle: jobTitle.trim(),
         department: department.trim(),
         preferredLanguage: preferredLanguage,
-      })
+      });
 
-      console.log("[v0] Profile updated successfully")
+      console.log(" Profile updated successfully");
 
-      await refreshUserData()
+      await refreshUserData();
 
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully",
-      })
-      onOpenChange(false)
+      });
+      onOpenChange(false);
     } catch (error: any) {
-      console.error("[v0] Error updating profile:", error)
+      console.error(" Error updating profile:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to update profile",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -118,13 +125,17 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
             <User className="h-5 w-5" />
             Profile Settings
           </DialogTitle>
-          <DialogDescription>Update your professional profile information</DialogDescription>
+          <DialogDescription>
+            Update your professional profile information
+          </DialogDescription>
         </DialogHeader>
 
         {isProfileIncomplete && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>Please complete all required fields to fully set up your profile.</AlertDescription>
+            <AlertDescription>
+              Please complete all required fields to fully set up your profile.
+            </AlertDescription>
           </Alert>
         )}
 
@@ -135,8 +146,15 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
                 Email
                 <CheckCircle2 className="h-3 w-3 text-green-500" />
               </Label>
-              <Input id="email" value={user?.email || ""} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+              <Input
+                id="email"
+                value={user?.email || ""}
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-xs text-muted-foreground">
+                Email cannot be changed
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -211,13 +229,19 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
                 onLanguageChange={setPreferredLanguage}
                 variant="button"
               />
-              <p className="text-xs text-muted-foreground">Your preferred language for meeting transcription</p>
+              <p className="text-xs text-muted-foreground">
+                Your preferred language for meeting transcription
+              </p>
             </div>
           </div>
         </ScrollArea>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSaving}
+          >
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isSaving}>
@@ -226,5 +250,5 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

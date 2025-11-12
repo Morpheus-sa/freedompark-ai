@@ -1,83 +1,100 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { collection, query, onSnapshot, doc, updateDoc, arrayUnion } from "firebase/firestore"
-import { db } from "@/lib/firebase"
-import { useAuth } from "@/contexts/auth-context"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Search, UserPlus, Mail, Building2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import type { User, Meeting } from "@/types/meeting"
-import { logActivity } from "@/lib/activity-logger"
-import { sendNotification } from "@/lib/notification-service"
+import { useState, useEffect } from "react";
+import {
+  collection,
+  query,
+  onSnapshot,
+  doc,
+  updateDoc,
+  arrayUnion,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/contexts/auth-context";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Search, UserPlus, Mail, Building2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import type { User, Meeting } from "@/types/meeting";
+import { logActivity } from "@/lib/activity-logger";
+import { sendNotification } from "@/lib/notification-service";
 
 interface AddParticipantsDialogProps {
-  meeting: Meeting
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  meeting: Meeting;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function AddParticipantsDialog({ meeting, open, onOpenChange }: AddParticipantsDialogProps) {
-  const [users, setUsers] = useState<User[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [loading, setLoading] = useState<Record<string, boolean>>({})
-  const { user: currentUser } = useAuth()
-  const { toast } = useToast()
+export function AddParticipantsDialog({
+  meeting,
+  open,
+  onOpenChange,
+}: AddParticipantsDialogProps) {
+  const [users, setUsers] = useState<User[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const { user: currentUser } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
 
-    const q = query(collection(db, "users"))
+    const q = query(collection(db, "users"));
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         const usersData = snapshot.docs.map((doc) => ({
           uid: doc.id,
           ...doc.data(),
-        })) as User[]
-        setUsers(usersData)
+        })) as User[];
+        setUsers(usersData);
       },
       (error) => {
-        console.error("[v0] Error loading users:", error)
+        console.error(" Error loading users:", error);
         toast({
           title: "Error",
           description: "Failed to load users",
           variant: "destructive",
-        })
-      },
-    )
+        });
+      }
+    );
 
-    return unsubscribe
-  }, [open, toast])
+    return unsubscribe;
+  }, [open, toast]);
 
   const filteredUsers = users.filter((user) => {
-    if (meeting.participants.includes(user.uid)) return false
+    if (meeting.participants.includes(user.uid)) return false;
 
     const matchesSearch =
       user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.company?.toLowerCase().includes(searchQuery.toLowerCase())
+      user.company?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesSearch
-  })
+    return matchesSearch;
+  });
 
   const handleAddParticipant = async (targetUser: User) => {
-    if (!currentUser) return
+    if (!currentUser) return;
 
-    setLoading((prev) => ({ ...prev, [targetUser.uid]: true }))
+    setLoading((prev) => ({ ...prev, [targetUser.uid]: true }));
 
     try {
-      const meetingRef = doc(db, "meetings", meeting.id)
+      const meetingRef = doc(db, "meetings", meeting.id);
 
       await updateDoc(meetingRef, {
         participants: arrayUnion(targetUser.uid),
-      })
+      });
 
       await logActivity(
         currentUser.uid,
@@ -90,8 +107,8 @@ export function AddParticipantsDialog({ meeting, open, onOpenChange }: AddPartic
           meetingTitle: meeting.title,
           addedUserId: targetUser.uid,
           addedUserEmail: targetUser.email,
-        },
-      )
+        }
+      );
 
       await sendNotification(
         targetUser.uid,
@@ -104,24 +121,24 @@ export function AddParticipantsDialog({ meeting, open, onOpenChange }: AddPartic
           meetingId: meeting.id,
           meetingTitle: meeting.title,
           meetingCode: meeting.shareCode,
-        },
-      )
+        }
+      );
 
       toast({
         title: "Participant added",
         description: `${targetUser.displayName} has been added to the meeting and notified`,
-      })
+      });
     } catch (error: any) {
-      console.error("[v0] Error adding participant:", error)
+      console.error(" Error adding participant:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to add participant",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading((prev) => ({ ...prev, [targetUser.uid]: false }))
+      setLoading((prev) => ({ ...prev, [targetUser.uid]: false }));
     }
-  }
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -129,8 +146,8 @@ export function AddParticipantsDialog({ meeting, open, onOpenChange }: AddPartic
       .map((n) => n[0])
       .join("")
       .toUpperCase()
-      .slice(0, 2)
-  }
+      .slice(0, 2);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -140,7 +157,9 @@ export function AddParticipantsDialog({ meeting, open, onOpenChange }: AddPartic
             <UserPlus className="h-5 w-5" />
             Add Participants
           </DialogTitle>
-          <DialogDescription>Invite users to join this meeting</DialogDescription>
+          <DialogDescription>
+            Invite users to join this meeting
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -159,7 +178,9 @@ export function AddParticipantsDialog({ meeting, open, onOpenChange }: AddPartic
               <div className="py-12 text-center">
                 <UserPlus className="mx-auto mb-4 h-12 w-12 text-muted-foreground opacity-50" />
                 <p className="text-sm text-muted-foreground">
-                  {searchQuery ? "No users found matching your search" : "All users are already participants"}
+                  {searchQuery
+                    ? "No users found matching your search"
+                    : "All users are already participants"}
                 </p>
               </div>
             ) : (
@@ -177,7 +198,9 @@ export function AddParticipantsDialog({ meeting, open, onOpenChange }: AddPartic
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <p className="font-medium text-foreground text-sm truncate">{user.displayName}</p>
+                        <p className="font-medium text-foreground text-sm truncate">
+                          {user.displayName}
+                        </p>
                         {user.isAdmin && (
                           <Badge variant="secondary" className="text-xs h-5">
                             Admin
@@ -224,5 +247,5 @@ export function AddParticipantsDialog({ meeting, open, onOpenChange }: AddPartic
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

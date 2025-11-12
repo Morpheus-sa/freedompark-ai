@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Mic, Sparkles, Users } from "lucide-react"
 import { useEffect, useRef } from "react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import Image from "next/image";
+
 
 export function LandingHero({ onGetStarted }: { onGetStarted: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -88,7 +90,10 @@ export function LandingHero({ onGetStarted }: { onGetStarted: () => void }) {
         <div className="animate-float">
           <div className="relative">
             <div className="absolute inset-0 animate-pulse rounded-full bg-violet-500/20 blur-3xl" />
-            <Mic className="relative h-32 w-32 text-violet-500/30 sm:h-48 sm:w-48" strokeWidth={1} />
+            <Mic
+              className="relative h-32 w-32 text-violet-500/30 sm:h-48 sm:w-48"
+              strokeWidth={1}
+            />
           </div>
         </div>
       </div>
@@ -97,11 +102,15 @@ export function LandingHero({ onGetStarted }: { onGetStarted: () => void }) {
       <div className="relative z-10 flex min-h-screen flex-col">
         {/* Header */}
         <header className="flex items-center justify-between px-6 py-6 sm:px-12">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-600">
-              <Mic className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl font-bold">MeetingAI</span>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/freedom-park-logo.png"
+              alt="Freedom Park Logo"
+              width={180}
+              height={120}
+              className="h-50 w-auto object-contain"
+              priority
+            />
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -128,8 +137,8 @@ export function LandingHero({ onGetStarted }: { onGetStarted: () => void }) {
             </h1>
 
             <p className="mx-auto mb-10 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground sm:text-xl">
-              Real-time transcription, AI-powered summaries, and collaborative note-taking. Never miss a detail in your
-              meetings again.
+              Real-time transcription, AI-powered summaries, and collaborative
+              note-taking. Never miss a detail in your meetings again.
             </p>
 
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -140,7 +149,11 @@ export function LandingHero({ onGetStarted }: { onGetStarted: () => void }) {
               >
                 Get Started Free
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 text-base bg-transparent">
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-12 px-8 text-base bg-transparent"
+              >
                 Watch Demo
               </Button>
             </div>
@@ -152,7 +165,9 @@ export function LandingHero({ onGetStarted }: { onGetStarted: () => void }) {
                   <Mic className="h-6 w-6 text-violet-500" />
                 </div>
                 <h3 className="mb-2 font-semibold">Real-time Transcription</h3>
-                <p className="text-sm text-muted-foreground">Automatic speech-to-text with speaker identification</p>
+                <p className="text-sm text-muted-foreground">
+                  Automatic speech-to-text with speaker identification
+                </p>
               </div>
 
               <div className="rounded-lg border border-border/50 bg-card/50 p-6 backdrop-blur-sm">
@@ -160,7 +175,9 @@ export function LandingHero({ onGetStarted }: { onGetStarted: () => void }) {
                   <Sparkles className="h-6 w-6 text-violet-500" />
                 </div>
                 <h3 className="mb-2 font-semibold">AI Summaries</h3>
-                <p className="text-sm text-muted-foreground">Get key points, action items, and decisions instantly</p>
+                <p className="text-sm text-muted-foreground">
+                  Get key points, action items, and decisions instantly
+                </p>
               </div>
 
               <div className="rounded-lg border border-border/50 bg-card/50 p-6 backdrop-blur-sm">
@@ -168,12 +185,14 @@ export function LandingHero({ onGetStarted }: { onGetStarted: () => void }) {
                   <Users className="h-6 w-6 text-violet-500" />
                 </div>
                 <h3 className="mb-2 font-semibold">Collaborative</h3>
-                <p className="text-sm text-muted-foreground">Multiple participants, real-time sync across devices</p>
+                <p className="text-sm text-muted-foreground">
+                  Multiple participants, real-time sync across devices
+                </p>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

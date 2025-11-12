@@ -11,7 +11,7 @@ export async function logActivity(
   metadata?: Record<string, any>,
 ) {
   try {
-    console.log("[v0] Logging activity:", { userId, activityType, description })
+    console.log(" Logging activity:", { userId, activityType, description })
 
     await addDoc(collection(db, "activityLogs"), {
       userId,
@@ -24,9 +24,9 @@ export async function logActivity(
       createdAt: serverTimestamp(),
     })
 
-    console.log("[v0] Activity logged successfully")
+    console.log("Activity logged successfully")
   } catch (error) {
-    console.error("[v0] Error logging activity:", error)
+    console.error("Error logging activity:", error)
     // Don't throw error to prevent disrupting user flow
   }
 }

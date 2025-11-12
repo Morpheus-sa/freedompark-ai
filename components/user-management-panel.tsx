@@ -1,16 +1,36 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { collection, query, onSnapshot, orderBy, doc, deleteDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
-import type { User } from "@/types/meeting"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useEffect, useState } from "react";
+import {
+  collection,
+  query,
+  onSnapshot,
+  orderBy,
+  doc,
+  deleteDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import type { User } from "@/types/meeting";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,70 +40,89 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Users, Search, Shield, Trash2, UserCog, Building2, Briefcase, Mail, Clock, Eye } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/contexts/auth-context"
-import { logActivity } from "@/lib/activity-logger"
-import { ViewProfileDialog } from "@/components/view-profile-dialog"
+} from "@/components/ui/alert-dialog";
+import {
+  Users,
+  Search,
+  Shield,
+  Trash2,
+  UserCog,
+  Building2,
+  Briefcase,
+  Mail,
+  Clock,
+  Eye,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
+import { logActivity } from "@/lib/activity-logger";
+import { ViewProfileDialog } from "@/components/view-profile-dialog";
+import { isSuperAdmin } from "@/lib/admin-config";
 
 export function UserManagementPanel() {
-  const [users, setUsers] = useState<User[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [viewProfileOpen, setViewProfileOpen] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [roleFilter, setRoleFilter] = useState<string>("all")
-  const { user: currentUser } = useAuth()
-  const { toast } = useToast()
+  const [users, setUsers] = useState<User[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [viewProfileOpen, setViewProfileOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const { user: currentUser } = useAuth();
+  const { toast } = useToast();
+
+  const canManageAdmins = currentUser ? isSuperAdmin(currentUser.email) : false;
+
+  console.log(" Current user email:", currentUser?.email);
+  console.log(" Can manage admins:", canManageAdmins);
 
   useEffect(() => {
-    console.log("[v0] Setting up users listener")
+    console.log(" Setting up users listener");
 
-    const q = query(collection(db, "users"), orderBy("createdAt", "desc"))
+    const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         const usersData = snapshot.docs.map((doc) => ({
           uid: doc.id,
           ...doc.data(),
-        })) as User[]
-        console.log("[v0] Loaded users:", usersData.length)
-        setUsers(usersData)
+        })) as User[];
+        console.log(" Loaded users:", usersData.length);
+        setUsers(usersData);
       },
       (error) => {
-        console.error("[v0] Error loading users:", error)
+        console.error(" Error loading users:", error);
         toast({
           title: "Error",
           description: "Failed to load users",
           variant: "destructive",
-        })
-      },
-    )
+        });
+      }
+    );
 
-    return unsubscribe
-  }, [toast])
+    return unsubscribe;
+  }, [toast]);
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.company?.toLowerCase().includes(searchQuery.toLowerCase())
+      user.company?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesRole =
-      roleFilter === "all" || (roleFilter === "admin" && user.isAdmin) || (roleFilter === "user" && !user.isAdmin)
+      roleFilter === "all" ||
+      (roleFilter === "admin" && user.isAdmin) ||
+      (roleFilter === "user" && !user.isAdmin);
 
-    return matchesSearch && matchesRole
-  })
+    return matchesSearch && matchesRole;
+  });
 
   const handleDeleteUser = async () => {
-    if (!selectedUser || !currentUser) return
+    if (!selectedUser || !currentUser) return;
 
-    setIsSaving(true)
+    setIsSaving(true);
     try {
-      await deleteDoc(doc(db, "users", selectedUser.uid))
+      await deleteDoc(doc(db, "users", selectedUser.uid));
 
       await logActivity(
         currentUser.uid,
@@ -94,39 +133,83 @@ export function UserManagementPanel() {
         {
           targetUserId: selectedUser.uid,
           targetUserEmail: selectedUser.email,
-        },
-      )
+        }
+      );
 
       toast({
         title: "User deleted",
         description: `${selectedUser.displayName} has been removed from the system`,
-      })
+      });
 
-      setDeleteDialogOpen(false)
-      setSelectedUser(null)
+      setDeleteDialogOpen(false);
+      setSelectedUser(null);
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Failed to delete user",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
+
+  const handleToggleAdmin = async (user: User) => {
+    if (!currentUser || !canManageAdmins) return;
+
+    setIsSaving(true);
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const newAdminStatus = !user.isAdmin;
+
+      await updateDoc(userRef, {
+        isAdmin: newAdminStatus,
+      });
+
+      await logActivity(
+        currentUser.uid,
+        currentUser.email,
+        currentUser.displayName,
+        "user_role_changed",
+        `${currentUser.displayName} ${
+          newAdminStatus ? "promoted" : "demoted"
+        } ${user.displayName} ${newAdminStatus ? "to" : "from"} admin`,
+        {
+          targetUserId: user.uid,
+          targetUserEmail: user.email,
+          newRole: newAdminStatus ? "admin" : "user",
+        }
+      );
+
+      toast({
+        title: newAdminStatus ? "Admin promoted" : "Admin demoted",
+        description: `${user.displayName} is now ${
+          newAdminStatus ? "an admin" : "a regular user"
+        }`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update user role",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const formatTimestamp = (timestamp: number | undefined) => {
-    if (!timestamp) return "Unknown"
+    if (!timestamp) return "Unknown";
     try {
       return new Date(timestamp).toLocaleDateString("en-ZA", {
         year: "numeric",
         month: "short",
         day: "numeric",
-      })
+      });
     } catch {
-      return "Unknown"
+      return "Unknown";
     }
-  }
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -134,8 +217,8 @@ export function UserManagementPanel() {
       .map((n) => n[0])
       .join("")
       .toUpperCase()
-      .slice(0, 2)
-  }
+      .slice(0, 2);
+  };
 
   return (
     <>
@@ -147,10 +230,13 @@ export function UserManagementPanel() {
                 <UserCog className="h-5 w-5" />
                 User Management
               </CardTitle>
-              <CardDescription>Manage user roles, permissions, and accounts</CardDescription>
+              <CardDescription>
+                Manage user roles, permissions, and accounts
+              </CardDescription>
             </div>
             <Badge variant="outline" className="text-sm">
-              {filteredUsers.length} {filteredUsers.length === 1 ? "user" : "users"}
+              {filteredUsers.length}{" "}
+              {filteredUsers.length === 1 ? "user" : "users"}
             </Badge>
           </div>
         </CardHeader>
@@ -192,7 +278,9 @@ export function UserManagementPanel() {
                       <div className="flex-1 space-y-3">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-foreground">{user.displayName}</h3>
+                            <h3 className="font-semibold text-foreground">
+                              {user.displayName}
+                            </h3>
                             {user.isAdmin && (
                               <Badge variant="secondary" className="gap-1">
                                 <Shield className="h-3 w-3" />
@@ -211,13 +299,17 @@ export function UserManagementPanel() {
                             {user.fullName && (
                               <div className="flex items-center gap-2">
                                 <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-foreground">{user.fullName}</span>
+                                <span className="text-foreground">
+                                  {user.fullName}
+                                </span>
                               </div>
                             )}
                             {user.company && (
                               <div className="flex items-center gap-2">
                                 <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-foreground">{user.company}</span>
+                                <span className="text-foreground">
+                                  {user.company}
+                                </span>
                               </div>
                             )}
                             {user.jobTitle && (
@@ -244,8 +336,8 @@ export function UserManagementPanel() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              setSelectedUser(user)
-                              setViewProfileOpen(true)
+                              setSelectedUser(user);
+                              setViewProfileOpen(true);
                             }}
                             className="gap-1"
                           >
@@ -253,12 +345,25 @@ export function UserManagementPanel() {
                             View Profile
                           </Button>
 
+                          {canManageAdmins && user.uid !== currentUser?.uid && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleToggleAdmin(user)}
+                              disabled={isSaving}
+                              className="gap-1"
+                            >
+                              <Shield className="h-3 w-3" />
+                              {user.isAdmin ? "Remove Admin" : "Make Admin"}
+                            </Button>
+                          )}
+
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              setSelectedUser(user)
-                              setDeleteDialogOpen(true)
+                              setSelectedUser(user);
+                              setDeleteDialogOpen(true);
                             }}
                             disabled={isSaving || user.uid === currentUser?.uid}
                             className="gap-1 text-destructive hover:text-destructive"
@@ -277,7 +382,9 @@ export function UserManagementPanel() {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground opacity-50" />
-                    <p className="text-sm text-muted-foreground">No users found matching your search</p>
+                    <p className="text-sm text-muted-foreground">
+                      No users found matching your search
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -287,7 +394,11 @@ export function UserManagementPanel() {
       </Card>
 
       {/* View Profile Dialog */}
-      <ViewProfileDialog user={selectedUser} open={viewProfileOpen} onOpenChange={setViewProfileOpen} />
+      <ViewProfileDialog
+        user={selectedUser}
+        open={viewProfileOpen}
+        onOpenChange={setViewProfileOpen}
+      />
 
       {/* Delete User Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -295,8 +406,9 @@ export function UserManagementPanel() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User Account?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedUser?.displayName}? This action cannot be undone and will remove
-              all user data and meeting history.
+              Are you sure you want to delete {selectedUser?.displayName}? This
+              action cannot be undone and will remove all user data and meeting
+              history.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -312,5 +424,5 @@ export function UserManagementPanel() {
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
+  );
 }

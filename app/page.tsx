@@ -21,6 +21,8 @@ import { Badge } from "@/components/ui/badge"
 import { LogOut, Shield, Settings } from "lucide-react"
 import { ScheduledMeetingsList } from "@/components/scheduled-meetings-list"
 import { ThemeToggle } from "@/components/theme-toggle"
+import Image from "next/image"
+
 
 export default function Home() {
   const { user, signOut } = useAuth()
@@ -49,19 +51,38 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-background">
-      <AnimatedBackground className="fixed inset-0 z-0" opacity={0.2} particleCount={40} />
+      <AnimatedBackground
+        className="fixed inset-0 z-0"
+        opacity={0.2}
+        particleCount={40}
+      />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="mb-12">
           <div className="flex items-center justify-between">
-            <div className="flex-1 text-center">
-              <h1 className="mb-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">AI Meeting Notes</h1>
-              <p className="text-lg text-muted-foreground">Collaborative real-time meeting transcription with AI</p>
+            <div className="flex items-center gap-4">
+              <Image
+                src="/freedom-park-logo.png"
+                alt="Freedom Park"
+                width={120}
+                height={80}
+                className="h-36 w-auto object-contain"
+              />
+              <div className="flex-1 text-center">
+                <h1 className="mb-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+                  AI Meeting Notes
+                </h1>
+                <p className="text-lg text-muted-foreground">
+                  Collaborative real-time meeting transcription with AI
+                </p>
+              </div>
             </div>
             {user && (
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{user.displayName}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {user.displayName}
+                  </span>
                   {user.isAdmin && (
                     <Badge variant="secondary" className="gap-1">
                       <Shield className="h-3 w-3" />
@@ -71,7 +92,12 @@ export default function Home() {
                 </div>
                 <ThemeToggle />
                 <NotificationCenter />
-                <Button variant="outline" size="sm" onClick={() => setProfileDialogOpen(true)} title="Profile Settings">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setProfileDialogOpen(true)}
+                  title="Profile Settings"
+                >
                   <Settings className="h-4 w-4" />
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => signOut()}>
@@ -88,20 +114,31 @@ export default function Home() {
 
         {activeMeetingId ? (
           <div className="mx-auto max-w-4xl">
-            <CollaborativeMeetingRecorder meetingId={activeMeetingId} onEndMeeting={handleEndMeeting} />
+            <CollaborativeMeetingRecorder
+              meetingId={activeMeetingId}
+              onEndMeeting={handleEndMeeting}
+            />
           </div>
         ) : (
           <div className="mx-auto max-w-4xl">
-            <Tabs defaultValue={user.isAdmin ? "admin" : "dashboard"} className="space-y-4">
+            <Tabs
+              defaultValue={user.isAdmin ? "admin" : "dashboard"}
+              className="space-y-4"
+            >
               <div className="flex items-center justify-between">
                 <TabsList>
-                  {user.isAdmin && <TabsTrigger value="admin">Admin Dashboard</TabsTrigger>}
+                  {user.isAdmin && (
+                    <TabsTrigger value="admin">Admin Dashboard</TabsTrigger>
+                  )}
                   <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                   <TabsTrigger value="active">Active Meetings</TabsTrigger>
                   <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
                   <TabsTrigger value="past">Past Meetings</TabsTrigger>
                 </TabsList>
-                <Button variant="outline" onClick={() => setJoinDialogOpen(true)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setJoinDialogOpen(true)}
+                >
                   Join with ID
                 </Button>
               </div>
@@ -131,10 +168,20 @@ export default function Home() {
           </div>
         )}
 
-        <JoinMeetingDialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen} onJoinSuccess={handleJoinMeeting} />
-        <ScheduleMeetingDialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen} />
-        <ProfileSettingsDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} />
+        <JoinMeetingDialog
+          open={joinDialogOpen}
+          onOpenChange={setJoinDialogOpen}
+          onJoinSuccess={handleJoinMeeting}
+        />
+        <ScheduleMeetingDialog
+          open={scheduleDialogOpen}
+          onOpenChange={setScheduleDialogOpen}
+        />
+        <ProfileSettingsDialog
+          open={profileDialogOpen}
+          onOpenChange={setProfileDialogOpen}
+        />
       </div>
     </div>
-  )
+  );
 }

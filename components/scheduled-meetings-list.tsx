@@ -1,96 +1,144 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { collection, query, where, onSnapshot, orderBy, doc, updateDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase"
-import { useAuth } from "@/contexts/auth-context"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Calendar, Users, Clock, Search, Trash2, Play, AlertCircle, Share2, Copy, Check } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import type { Meeting } from "@/types/meeting"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { sendNotification } from "@/lib/notification-service"
+import { useState, useEffect } from "react";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  orderBy,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/contexts/auth-context";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Calendar,
+  Users,
+  Clock,
+  Search,
+  Trash2,
+  Play,
+  AlertCircle,
+  Share2,
+  Copy,
+  Check,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import type { Meeting } from "@/types/meeting";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { sendNotification } from "@/lib/notification-service";
 
 interface ScheduledMeetingsListProps {
-  onStartMeeting: (meetingId: string) => void
+  onStartMeeting: (meetingId: string) => void;
 }
 
-export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListProps) {
-  const [meetings, setMeetings] = useState<Meeting[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [currentTime, setCurrentTime] = useState(Date.now())
-  const [copiedMeetingId, setCopiedMeetingId] = useState<string | null>(null)
-  const { user } = useAuth()
-  const { toast } = useToast()
+export function ScheduledMeetingsList({
+  onStartMeeting,
+}: ScheduledMeetingsListProps) {
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [copiedMeetingId, setCopiedMeetingId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(Date.now())
-    }, 60000) // Update every minute
+      setCurrentTime(Date.now());
+    }, 60000); // Update every minute
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
-    if (!user) return
+    if (!user) return;
 
-    console.log("Setting up scheduled meetings listener for user:", user.uid)
+    console.log(
+      "Setting up scheduled meetings listener for user:",
+      user.uid
+    );
 
     const q = query(
       collection(db, "meetings"),
       where("isScheduled", "==", true),
       where("isActive", "==", false),
-      where("isDeleted", "!=", true),
-      orderBy("isDeleted", "asc"),
-      orderBy("scheduledFor", "asc"),
-    )
+      orderBy("scheduledFor", "asc")
+    );
 
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        console.log("Received scheduled meetings snapshot, docs count:", snapshot.docs.length)
+        console.log(
+          "Received scheduled meetings snapshot, docs count:",
+          snapshot.docs.length
+        );
         const meetingsData = snapshot.docs
           .map((doc) => ({
             id: doc.id,
             ...doc.data(),
           }))
-          .filter((meeting: any) => meeting.participants?.includes(user.uid)) as Meeting[]
+          .filter((meeting: any) => {
+            const isDeleted = meeting.isDeleted === true;
+            const isParticipant = meeting.participants?.includes(user.uid);
+            console.log("Meeting filter:", {
+              id: meeting.id,
+              title: meeting.title,
+              isDeleted,
+              isParticipant,
+              included: !isDeleted && isParticipant,
+            });
+            return !isDeleted && isParticipant;
+          }) as Meeting[];
 
-        console.log("Filtered scheduled meetings for user:", meetingsData.length)
-        setMeetings(meetingsData)
+        console.log(
+          "Filtered scheduled meetings for user:",
+          meetingsData.length
+        );
+        setMeetings(meetingsData);
       },
       (error) => {
-        console.error("Error listening to scheduled meetings:", error)
+        console.error("Error listening to scheduled meetings:", error);
         toast({
           title: "Error",
           description: "Failed to load scheduled meetings",
           variant: "destructive",
-        })
-      },
-    )
+        });
+      }
+    );
 
-    return unsubscribe
-  }, [user, toast])
+    return unsubscribe;
+  }, [user, toast]);
 
   const filteredMeetings = meetings.filter((meeting) => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return meeting.title.toLowerCase().includes(query) || meeting.description?.toLowerCase().includes(query)
-  })
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      meeting.title.toLowerCase().includes(query) ||
+      meeting.description?.toLowerCase().includes(query)
+    );
+  });
 
   const startMeeting = async (meetingId: string) => {
     try {
-      const meeting = meetings.find((m) => m.id === meetingId)
-      if (!meeting) return
+      const meeting = meetings.find((m) => m.id === meetingId);
+      if (!meeting) return;
 
       await updateDoc(doc(db, "meetings", meetingId), {
         isActive: true,
         isScheduled: false,
-      })
+      });
 
       const notificationPromises = meeting.participants
         .filter((participantId) => participantId !== user?.uid)
@@ -104,27 +152,27 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
               meetingId: meeting.id,
               meetingTitle: meeting.title,
               meetingCode: meeting.shareCode,
-            },
-          ),
-        )
+            }
+          )
+        );
 
-      await Promise.all(notificationPromises)
+      await Promise.all(notificationPromises);
 
       toast({
         title: "Meeting started",
         description: "All participants have been notified",
-      })
+      });
 
-      onStartMeeting(meetingId)
+      onStartMeeting(meetingId);
     } catch (error: any) {
-      console.error("Error starting meeting:", error)
+      console.error("Error starting meeting:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to start meeting",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const cancelMeeting = async (meetingId: string, meetingTitle: string) => {
     if (!user?.isAdmin) {
@@ -132,18 +180,18 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
         title: "Permission denied",
         description: "Only admins can cancel scheduled meetings",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     try {
-      const meeting = meetings.find((m) => m.id === meetingId)
+      const meeting = meetings.find((m) => m.id === meetingId);
 
       await updateDoc(doc(db, "meetings", meetingId), {
         isDeleted: true,
         deletedAt: Date.now(),
         deletedBy: user.uid,
-      })
+      });
 
       if (meeting) {
         const notificationPromises = meeting.participants
@@ -157,46 +205,50 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
               {
                 meetingId: meeting.id,
                 meetingTitle: meeting.title,
-              },
-            ),
-          )
+              }
+            )
+          );
 
-        await Promise.all(notificationPromises)
+        await Promise.all(notificationPromises);
       }
 
       toast({
         title: "Meeting cancelled",
         description: `"${meetingTitle}" has been removed and participants notified`,
-      })
+      });
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Failed to cancel meeting",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const formatScheduledTime = (timestamp: any) => {
-    if (!timestamp) return "Unknown time"
+    if (!timestamp) return "Unknown time";
 
     try {
-      let dateValue: number
+      let dateValue: number;
 
       // Handle Firestore Timestamp
-      if (timestamp && typeof timestamp === "object" && "seconds" in timestamp) {
-        dateValue = timestamp.seconds * 1000
+      if (
+        timestamp &&
+        typeof timestamp === "object" &&
+        "seconds" in timestamp
+      ) {
+        dateValue = timestamp.seconds * 1000;
       } else if (timestamp && typeof timestamp.toMillis === "function") {
-        dateValue = timestamp.toMillis()
+        dateValue = timestamp.toMillis();
       } else if (typeof timestamp === "number") {
-        dateValue = timestamp
+        dateValue = timestamp;
       } else {
-        return "Unknown time"
+        return "Unknown time";
       }
 
-      const date = new Date(dateValue)
+      const date = new Date(dateValue);
       if (isNaN(date.getTime())) {
-        return "Invalid time"
+        return "Invalid time";
       }
 
       return date.toLocaleString("en-US", {
@@ -206,53 +258,69 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-      })
+      });
     } catch (error) {
-      console.error("Error formatting scheduled time:", error)
-      return "Unknown time"
+      console.error("Error formatting scheduled time:", error);
+      return "Unknown time";
     }
-  }
+  };
 
   const getTimeUntilMeeting = (scheduledFor: any) => {
-    if (!scheduledFor) return null
+    if (!scheduledFor) return null;
 
     try {
-      let dateValue: number
+      let dateValue: number;
 
-      if (scheduledFor && typeof scheduledFor === "object" && "seconds" in scheduledFor) {
-        dateValue = scheduledFor.seconds * 1000
+      if (
+        scheduledFor &&
+        typeof scheduledFor === "object" &&
+        "seconds" in scheduledFor
+      ) {
+        dateValue = scheduledFor.seconds * 1000;
       } else if (scheduledFor && typeof scheduledFor.toMillis === "function") {
-        dateValue = scheduledFor.toMillis()
+        dateValue = scheduledFor.toMillis();
       } else if (typeof scheduledFor === "number") {
-        dateValue = scheduledFor
+        dateValue = scheduledFor;
       } else {
-        return null
+        return null;
       }
 
-      const diff = dateValue - currentTime
-      const isPast = diff < 0
+      const diff = dateValue - currentTime;
+      const isPast = diff < 0;
 
       if (isPast) {
-        return { text: "Ready to start", isPast: true, canStart: true }
+        return { text: "Ready to start", isPast: true, canStart: true };
       }
 
-      const minutes = Math.floor(diff / 60000)
-      const hours = Math.floor(minutes / 60)
-      const days = Math.floor(hours / 24)
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
 
       if (days > 0) {
-        return { text: `in ${days} day${days !== 1 ? "s" : ""}`, isPast: false, canStart: false }
+        return {
+          text: `in ${days} day${days !== 1 ? "s" : ""}`,
+          isPast: false,
+          canStart: false,
+        };
       } else if (hours > 0) {
-        return { text: `in ${hours} hour${hours !== 1 ? "s" : ""}`, isPast: false, canStart: false }
+        return {
+          text: `in ${hours} hour${hours !== 1 ? "s" : ""}`,
+          isPast: false,
+          canStart: false,
+        };
       } else if (minutes > 0) {
-        return { text: `in ${minutes} minute${minutes !== 1 ? "s" : ""}`, isPast: false, canStart: minutes <= 15 }
+        return {
+          text: `in ${minutes} minute${minutes !== 1 ? "s" : ""}`,
+          isPast: false,
+          canStart: minutes <= 15,
+        };
       } else {
-        return { text: "Starting soon", isPast: false, canStart: true }
+        return { text: "Starting soon", isPast: false, canStart: true };
       }
     } catch (error) {
-      return null
+      return null;
     }
-  }
+  };
 
   const copyShareableLink = (meeting: Meeting) => {
     if (!meeting.shareCode) {
@@ -260,45 +328,45 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
         title: "Error",
         description: "This meeting doesn't have a share code",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    const shareUrl = `${window.location.origin}?joinCode=${meeting.shareCode}`
+    const shareUrl = `${window.location.origin}?joinCode=${meeting.shareCode}`;
 
     navigator.clipboard
       .writeText(shareUrl)
       .then(() => {
-        setCopiedMeetingId(meeting.id)
+        setCopiedMeetingId(meeting.id);
         toast({
           title: "Link copied!",
           description: "Share this link with participants to join the meeting",
-        })
+        });
 
         // Reset copied state after 2 seconds
         setTimeout(() => {
-          setCopiedMeetingId(null)
-        }, 2000)
+          setCopiedMeetingId(null);
+        }, 2000);
       })
       .catch((error) => {
-        console.error("Failed to copy link:", error)
+        console.error("Failed to copy link:", error);
         toast({
           title: "Error",
           description: "Failed to copy link to clipboard",
           variant: "destructive",
-        })
-      })
-  }
+        });
+      });
+  };
 
   const upcomingMeetings = filteredMeetings.filter((m) => {
-    const timeInfo = getTimeUntilMeeting(m.scheduledFor)
-    return timeInfo && !timeInfo.isPast
-  })
+    const timeInfo = getTimeUntilMeeting(m.scheduledFor);
+    return timeInfo && !timeInfo.isPast;
+  });
 
   const readyMeetings = filteredMeetings.filter((m) => {
-    const timeInfo = getTimeUntilMeeting(m.scheduledFor)
-    return timeInfo && timeInfo.isPast
-  })
+    const timeInfo = getTimeUntilMeeting(m.scheduledFor);
+    return timeInfo && timeInfo.isPast;
+  });
 
   return (
     <Card>
@@ -309,7 +377,9 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
               <Calendar className="h-5 w-5" />
               Scheduled Meetings
             </CardTitle>
-            <CardDescription>View and manage your upcoming meetings</CardDescription>
+            <CardDescription>
+              View and manage your upcoming meetings
+            </CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -334,8 +404,8 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
               {searchQuery
                 ? "Try a different search term"
                 : user?.isAdmin
-                  ? "Schedule a meeting to get started"
-                  : "Scheduled meetings will appear here"}
+                ? "Schedule a meeting to get started"
+                : "Scheduled meetings will appear here"}
             </p>
           </div>
         ) : (
@@ -347,12 +417,13 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                   <Alert className="border-primary/50 bg-primary/10">
                     <AlertCircle className="h-4 w-4 text-primary" />
                     <AlertDescription className="text-primary">
-                      {readyMeetings.length} meeting{readyMeetings.length !== 1 ? "s" : ""} ready to start
+                      {readyMeetings.length} meeting
+                      {readyMeetings.length !== 1 ? "s" : ""} ready to start
                     </AlertDescription>
                   </Alert>
 
                   {readyMeetings.map((meeting) => {
-                    const timeInfo = getTimeUntilMeeting(meeting.scheduledFor)
+                    const timeInfo = getTimeUntilMeeting(meeting.scheduledFor);
 
                     return (
                       <div
@@ -363,9 +434,13 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                           <div className="flex-1 space-y-2">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <h3 className="font-semibold text-foreground">{meeting.title}</h3>
+                                <h3 className="font-semibold text-foreground">
+                                  {meeting.title}
+                                </h3>
                                 {meeting.description && (
-                                  <p className="mt-1 text-sm text-muted-foreground">{meeting.description}</p>
+                                  <p className="mt-1 text-sm text-muted-foreground">
+                                    {meeting.description}
+                                  </p>
                                 )}
                                 <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                                   <span className="flex items-center gap-1">
@@ -375,7 +450,9 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                                   <span className="flex items-center gap-1">
                                     <Users className="h-3 w-3" />
                                     {meeting.participants.length} participant
-                                    {meeting.participants.length !== 1 ? "s" : ""}
+                                    {meeting.participants.length !== 1
+                                      ? "s"
+                                      : ""}
                                   </span>
                                   {timeInfo && (
                                     <Badge variant="default" className="gap-1">
@@ -384,7 +461,10 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                                     </Badge>
                                   )}
                                   {meeting.shareCode && (
-                                    <Badge variant="outline" className="gap-1 font-mono text-xs">
+                                    <Badge
+                                      variant="outline"
+                                      className="gap-1 font-mono text-xs"
+                                    >
                                       {meeting.shareCode}
                                     </Badge>
                                   )}
@@ -393,7 +473,11 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                             </div>
 
                             <div className="flex gap-2">
-                              <Button onClick={() => startMeeting(meeting.id)} size="sm" className="flex-1">
+                              <Button
+                                onClick={() => startMeeting(meeting.id)}
+                                size="sm"
+                                className="flex-1"
+                              >
                                 <Play className="mr-2 h-4 w-4" />
                                 Start Meeting
                               </Button>
@@ -421,7 +505,9 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => cancelMeeting(meeting.id, meeting.title)}
+                                  onClick={() =>
+                                    cancelMeeting(meeting.id, meeting.title)
+                                  }
                                   className="text-destructive hover:bg-destructive/10"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -431,7 +517,7 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                           </div>
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               )}
@@ -440,11 +526,13 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
               {upcomingMeetings.length > 0 && (
                 <div className="space-y-3">
                   {readyMeetings.length > 0 && (
-                    <h3 className="text-sm font-semibold text-muted-foreground">Upcoming</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground">
+                      Upcoming
+                    </h3>
                   )}
 
                   {upcomingMeetings.map((meeting) => {
-                    const timeInfo = getTimeUntilMeeting(meeting.scheduledFor)
+                    const timeInfo = getTimeUntilMeeting(meeting.scheduledFor);
 
                     return (
                       <div
@@ -455,9 +543,13 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                           <div className="flex-1 space-y-2">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <h3 className="font-semibold text-foreground">{meeting.title}</h3>
+                                <h3 className="font-semibold text-foreground">
+                                  {meeting.title}
+                                </h3>
                                 {meeting.description && (
-                                  <p className="mt-1 text-sm text-muted-foreground">{meeting.description}</p>
+                                  <p className="mt-1 text-sm text-muted-foreground">
+                                    {meeting.description}
+                                  </p>
                                 )}
                                 <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                                   <span className="flex items-center gap-1">
@@ -467,16 +559,24 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                                   <span className="flex items-center gap-1">
                                     <Users className="h-3 w-3" />
                                     {meeting.participants.length} participant
-                                    {meeting.participants.length !== 1 ? "s" : ""}
+                                    {meeting.participants.length !== 1
+                                      ? "s"
+                                      : ""}
                                   </span>
                                   {timeInfo && (
-                                    <Badge variant="secondary" className="gap-1">
+                                    <Badge
+                                      variant="secondary"
+                                      className="gap-1"
+                                    >
                                       <Calendar className="h-3 w-3" />
                                       {timeInfo.text}
                                     </Badge>
                                   )}
                                   {meeting.shareCode && (
-                                    <Badge variant="outline" className="gap-1 font-mono text-xs">
+                                    <Badge
+                                      variant="outline"
+                                      className="gap-1 font-mono text-xs"
+                                    >
                                       {meeting.shareCode}
                                     </Badge>
                                   )}
@@ -514,7 +614,9 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => cancelMeeting(meeting.id, meeting.title)}
+                                  onClick={() =>
+                                    cancelMeeting(meeting.id, meeting.title)
+                                  }
                                   className="h-8 px-2 text-muted-foreground hover:text-destructive"
                                   title="Cancel meeting"
                                 >
@@ -525,7 +627,7 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
                           </div>
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               )}
@@ -534,5 +636,5 @@ export function ScheduledMeetingsList({ onStartMeeting }: ScheduledMeetingsListP
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
